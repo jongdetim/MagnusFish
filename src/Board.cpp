@@ -1,20 +1,17 @@
 #include "Board.hpp"
 
-Board::Board() : blackCanCastle(true), whiteCanCastle(true), sideToMove(WHITE), enPassentSquare(0)
+Board::Board()
 {
-	whitePawns = 0;
-	blackPawns = 0;
-	whiteKnights = 0;
-	blackKnights = 0;
-	whiteBishops = 0;
-	blackBishops = 0;
-	whiteRooks = 0;
-	blackRooks = 0;
-	whiteQueens = 0;
-	blackQueens = 0;
-	whiteKing = 0;
-	blackKing = 0;
-	parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+	sideToMove = WHITE;
+	enPassentSquare = 0;
+	pawns = 0;
+	knights = 0;
+	bishops = 0;
+	rooks = 0;
+	queens = 0;
+	kings = 0;
+	whitePieces = 0;
+	parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
 Board::Board(const std::string& fen)
@@ -34,21 +31,17 @@ Board&	Board::operator=(const Board& other)
 {
 	if (this != &other)
 	{
-		this->blackCanCastle = other.blackCanCastle;
-		this->blackCanCastle = other.blackCanCastle;
 		this->sideToMove = other.sideToMove;
-		this->whitePawns = other.whitePawns;
-		this->blackPawns = other.blackPawns;
-		this->whiteKnights = other.whiteKnights;
-		this->blackKnights = other.blackKnights;
-		this->whiteBishops = other.whiteBishops;
-		this->blackBishops = other.blackBishops;
-		this->whiteRooks = other.whiteRooks;
-		this->blackRooks = other.blackRooks;
-		this->whiteQueens = other.whiteQueens;
-		this->blackQueens = other.blackQueens;
-		this->whiteKing = other.whiteKing;
-		this->blackKing = other.blackKing;
+		this->enPassentSquare = other.enPassentSquare;
+		this->castlingRights = other.castlingRights;
+		this->sideToMove = other.sideToMove;
+		this->pawns = other.pawns;
+		this->knights = other.knights;
+		this->bishops = other.bishops;
+		this->rooks = other.rooks;
+		this->queens = other.queens;
+		this->kings = other.kings;
+		this->whitePieces = other.whitePieces;
 	}
 	return (*this);
 }
@@ -57,45 +50,45 @@ void	Board::parseFen(const char* fen)
 {
 	int i = 0;
 
-	while (i < 64 && *fen != '\0')
+	while (i < 64 && *fen != ' ')
 	{
 		switch (*fen)
 		{
 			case 'P':
-				whitePawns |= 1 << i;
+				pawns |= 1 << i;
 
 			case 'N':
-				whiteKnights |= 1 << i;
+				knights |= 1 << i;
 
 			case 'B':
-				whiteBishops |= 1 << i;
+				bishops |= 1 << i;
 
 			case 'R':
-				whiteRooks |= 1 << i;
+				rooks |= 1 << i;
 
 			case 'Q':
-				whiteQueens |= 1 << i;
+				queens |= 1 << i;
 
 			case 'K':
-				whiteKing = 1 << i;
+				kings = 1 << i;
 
 			case 'p':
-				blackPawns |= 1 << i;
+				pawns |= 1 << i;
 
 			case 'n':
-				blackKnights |= 1 << i;
+				knights |= 1 << i;
 
 			case 'b':
-				blackBishops |= 1 << i;
+				bishops |= 1 << i;
 
 			case 'r':
-				blackRooks |= 1 << i;
+				rooks |= 1 << i;
 
 			case 'q':
-				blackQueens |= 1 << i;
+				queens |= 1 << i;
 
 			case 'k':
-				blackKing = 1 << i;
+				kings = 1 << i;
 
 			case '/':
 				i--;
@@ -106,4 +99,47 @@ void	Board::parseFen(const char* fen)
 		i++;
 		fen++;
 	}
+	fen++;
+	if (*fen == 'w')
+	{
+		sideToMove = WHITE;
+	}
+	else
+	{
+		sideToMove = BLACK;
+	}
+	while (*fen != ' ')
+	{
+		switch (*fen)
+		{
+			case 'K':
+				castlingRights |= whiteKingSide;
+
+			case 'Q':
+				castlingRights |= whiteQueenSide;
+
+			case 'k':
+				castlingRights |= blackKingSide;
+
+			case 'q':
+				castlingRights |= blackQueenSide;
+			
+			default:
+				;
+		}
+		fen++;
+	}
+	fen++;
+	if (*fen != '-')
+	{
+		enPassentSquare = (8 - fen[0] - 'a') * 8 + fen[1] - '0';
+		fen++;
+	}
+	fen++;
+	halfMoveClock = atoi(fen);
+	while (*fen != ' ')
+	{
+		fen++;
+	}
+	fullMoveCount = atoi(fen);
 }

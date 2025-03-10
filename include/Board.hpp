@@ -8,6 +8,14 @@ enum colors
 	BLACK
 };
 
+enum castlingRights
+{
+	whiteKingSide = 1,
+	whiteQueenSide = 1 << 1,
+	blackKingSide = 1 << 2,
+	blackQueenSide = 1 << 3,
+};
+
 class Board
 {
 	public:
@@ -21,25 +29,21 @@ class Board
 
 	/*	Miscellaneous states*/
 
-	bool	blackCanCastle;
-	bool	whiteCanCastle;
-	colors	sideToMove;
+	bool	sideToMove;
 	int8_t	enPassentSquare;
+	int8_t	castlingRights;
+	int16_t	halfMoveClock;
+	int16_t	fullMoveCount;
 
 	/*	Bitboards of pieces	*/
 
-	int64_t	whitePawns;
-	int64_t	blackPawns;
-	int64_t	whiteKnights;
-	int64_t	blackKnights;
-	int64_t	whiteBishops;
-	int64_t	blackBishops;
-	int64_t	whiteRooks;
-	int64_t	blackRooks;
-	int64_t	whiteQueens;
-	int64_t	blackQueens;
-	int64_t	whiteKing;
-	int64_t	blackKing;
+	int64_t	pawns;
+	int64_t	knights;
+	int64_t	bishops;
+	int64_t	rooks;
+	int64_t	queens;
+	int64_t	kings;
+	int64_t	whitePieces;
 
 	private:
 
@@ -51,5 +55,5 @@ std::ostream&	operator<<(std::ostream& out, const Board& board)
 	std::string	visualBoard;
 
 	visualBoard.resize(64);
-	
+
 }

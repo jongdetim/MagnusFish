@@ -4,6 +4,7 @@ void	run()
 {
 	const std::string name = "MagnusFish";
 	const std::string author = "vvan-der";
+
 	bool		botShouldRun = true;
 	std::string	line;
 
@@ -12,6 +13,7 @@ void	run()
 		std::stringstream	ss(line);
 		std::string			token;
 
+		std::cout << line << std::endl;
 		while (ss >> token)
 		{
 			if (token == "quit")
