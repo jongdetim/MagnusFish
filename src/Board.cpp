@@ -16,7 +16,16 @@ Board::Board()
 
 Board::Board(const std::string& fen)
 {
-	(void)fen;
+	sideToMove = WHITE;
+	enPassentSquare = -1;
+	pawns = 0;
+	knights = 0;
+	bishops = 0;
+	rooks = 0;
+	queens = 0;
+	kings = 0;
+	whitePieces = 0;
+	parseFen(fen.c_str());
 }
 
 Board::Board(const Board& other)
@@ -220,14 +229,14 @@ std::ostream&	operator<<(std::ostream& out, const Board& board)
 	out << "Castling rights: " << board.castlingRights << std::endl;
 	out << "Half moves since last capture/pawn move: " << board.halfMoveClock << std::endl;
 	out << "Move: " << board.fullMoveCount << std::endl;
-	out << "\nBoard:" << std::endl;
-	for (int x = 1; x <= 64; x++)
+	out << "\nBoard:";
+	for (int x = 0; x < 64; x++)
 	{
-		out << visualBoard[x - 1];
 		if (x % 8 == 0)
 		{
 			out << std::endl;
 		}
+		out << visualBoard[x];
 	}
 	return (out);
 }

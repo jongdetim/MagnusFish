@@ -17,6 +17,16 @@ enum castlingRights
 	blackQueenSide = 1 << 3,
 };
 
+enum pieces
+{
+	PAWN,
+	KNIGHT,
+	BISHOP,
+	ROOK,
+	QUEEN,
+	KING
+};
+
 class Board
 {
 	public:
@@ -31,20 +41,20 @@ class Board
 	/*	Miscellaneous states	*/
 
 	bool	sideToMove;
-	int		enPassentSquare;
-	int		castlingRights;
-	int16_t	halfMoveClock;
-	int16_t	fullMoveCount;
+	i16		enPassentSquare;
+	i16		castlingRights;
+	i16		halfMoveClock;
+	i16		fullMoveCount;
 
 	/*	Bitboards of pieces	*/
 
-	u64	pawns;
-	u64	knights;
-	u64	bishops;
-	u64	rooks;
-	u64	queens;
-	u64	kings;
-	u64	whitePieces;
+	u64		pawns;
+	u64		knights;
+	u64		bishops;
+	u64		rooks;
+	u64		queens;
+	u64		kings;
+	u64		whitePieces;
 
 	private:
 
