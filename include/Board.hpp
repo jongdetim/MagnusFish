@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MagnusFish.hpp"
+#include <map>
 
 enum colors
 {
@@ -27,33 +28,27 @@ class Board
 
 	Board&	operator=(const Board& other);
 
-	/*	Miscellaneous states*/
+	/*	Miscellaneous states	*/
 
 	bool	sideToMove;
-	int8_t	enPassentSquare;
-	int8_t	castlingRights;
+	int		enPassentSquare;
+	int		castlingRights;
 	int16_t	halfMoveClock;
 	int16_t	fullMoveCount;
 
 	/*	Bitboards of pieces	*/
 
-	int64_t	pawns;
-	int64_t	knights;
-	int64_t	bishops;
-	int64_t	rooks;
-	int64_t	queens;
-	int64_t	kings;
-	int64_t	whitePieces;
+	u64	pawns;
+	u64	knights;
+	u64	bishops;
+	u64	rooks;
+	u64	queens;
+	u64	kings;
+	u64	whitePieces;
 
 	private:
 
 	void	parseFen(const char* fen);
 };
 
-std::ostream&	operator<<(std::ostream& out, const Board& board)
-{
-	std::string	visualBoard;
-
-	visualBoard.resize(64);
-
-}
+std::ostream&	operator<<(std::ostream& out, const Board& board);

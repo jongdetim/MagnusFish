@@ -1,4 +1,5 @@
 #include "MagnusFish.hpp"
+#include "Board.hpp"
 
 void	run()
 {
@@ -7,13 +8,14 @@ void	run()
 
 	bool		botShouldRun = true;
 	std::string	line;
+	Board		board;
 
+	std::cout << board << std::endl;
 	while (botShouldRun == true && std::getline(std::cin, line))
 	{
 		std::stringstream	ss(line);
 		std::string			token;
 
-		std::cout << line << std::endl;
 		while (ss >> token)
 		{
 			if (token == "quit")
@@ -33,11 +35,11 @@ void	run()
 			}
 			else if (token == "position")
 			{
-				// 
+				;// 
 			}
 			else if (token == "go")
 			{
-				//
+				;//
 			}
 			else if (token == "setoption" || token == "register")
 			{

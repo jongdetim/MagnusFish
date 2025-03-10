@@ -8,8 +8,10 @@ SRCS		=	Board.cpp \
 				inputLoop.cpp \
 				main.cpp \
 				search.cpp \
+				utils.cpp \
 
 OBJS		=	$(SRCS:%.cpp=$(OBJDIR)/%.o)
+SRCDIR		=	src
 OBJDIR		=	objs
 
 all:	$(NAME)
@@ -20,7 +22,7 @@ $(OBJDIR):
 $(NAME): $(OBJDIR) $(OBJS)
 	$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
 
-$(OBJDIR)/%.o : %.cpp
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	$(CC) -c $^ $(CPPFLAGS) $(HEADERS) -o $@
 
 clean:
