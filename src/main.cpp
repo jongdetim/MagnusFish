@@ -2,6 +2,5 @@
 
 int main()
 {
-	generateRookMoves(0);
 	run();
 }

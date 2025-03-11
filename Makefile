@@ -4,7 +4,8 @@ CC			=	c++
 CPPFLAGS	=	-Wall  -Wextra -std=c++20 -g #-Werror
 HEADERS		=	-I include
 SRCS		=	Board.cpp \
-				generateMoves.cpp \
+				BoardBitOperations.cpp \
+				BoardGenerateMoves.cpp \
 				inputLoop.cpp \
 				main.cpp \
 				search.cpp \

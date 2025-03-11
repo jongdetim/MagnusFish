@@ -8,9 +8,11 @@ void	run()
 
 	bool		botShouldRun = true;
 	std::string	line;
-	Board		board;
+	Board		board("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1");
 
 	std::cout << board << std::endl;
+	board.generateMoves();
+	exit(0);
 	while (botShouldRun == true && std::getline(std::cin, line))
 	{
 		std::stringstream	ss(line);
