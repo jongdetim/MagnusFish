@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import chess
 import pandas as pd
@@ -76,7 +77,6 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     total_features = KING_SQUARE_NUM * PIECE_NUM * SQUARE_NUM
     num_rows = len(fens)
     
-
     assert(num_rows == len(scores))
     # Prepare data for this chunk
     chunk_scores = torch.tensor([scores[i] for i in range(len(scores))], dtype=torch.float32)
@@ -88,9 +88,12 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
         for feature_idx in white_features[i]:
             white_indices.append([i, feature_idx])
             white_values.append(1)
+
+    print(min(white_indices))
+    print(max(white_indices))
     
     if white_indices:
-        white_indices_tensor = torch.tensor(white_indices, dtype=torch.int).t()
+        white_indices_tensor = torch.tensor(white_indices, dtype=torch.uint16).t()
         white_values_tensor = torch.tensor(white_values, dtype=torch.bool)
         white_sparse = torch.sparse_coo_tensor(
             white_indices_tensor, 
@@ -100,7 +103,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     else:
         # Empty tensor if no features
         white_sparse = torch.sparse_coo_tensor(
-            torch.zeros((2, 0), dtype=torch.int),
+            torch.zeros((2, 0), dtype=torch.uint16),
             torch.zeros(0, dtype=torch.bool),
             size=(num_rows, total_features)
         )
@@ -114,7 +117,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
             black_values.append(1)
     
     if black_indices:
-        black_indices_tensor = torch.tensor(black_indices, dtype=torch.int).t()
+        black_indices_tensor = torch.tensor(black_indices, dtype=torch.uint16).t()
         black_values_tensor = torch.tensor(black_values, dtype=torch.bool)
         black_sparse = torch.sparse_coo_tensor(
             black_indices_tensor, 
@@ -124,7 +127,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     else:
         # Empty tensor if no features
         black_sparse = torch.sparse_coo_tensor(
-            torch.zeros((2, 0), dtype=torch.int),
+            torch.zeros((2, 0), dtype=torch.uint16),
             torch.zeros(0, dtype=torch.bool),
             size=(num_rows, total_features)
         )
@@ -135,12 +138,15 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
         'white_features': white_sparse,
         'black_features': black_sparse,
         'scores': chunk_scores
-    }, chunk_file)
+    }, chunk_file, _use_new_zipfile_serialization=True)
     
-    print(f"Saved chunk {chunk_idx+1}/{13}")
+    print(f"Saved chunk {chunk_idx+1}/{130}")
     
 
-def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_size = 100000):
+def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_size = 65536):
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir, exist_ok=True)
+    
     with open(input_file, 'r') as f:
         print(f"Reading dataset from {input_file}")
     
@@ -149,7 +155,7 @@ def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_s
             if max_positions and total_processed >= max_positions:
                 break
 
-            print(f"Processing chunk {chunk_idx + 1}/{13}")
+            print(f"Processing chunk {chunk_idx + 1}/{130}")
 
             # Validate dataset format - should have 'FEN' and 'Evaluation' columns
             required_columns = ['FEN', 'Evaluation']
@@ -164,6 +170,8 @@ def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_s
             
             # Process positions in dataset
             for row_idx, row in tqdm.tqdm(chunk.iterrows(), total=len(chunk)):
+                if max_positions and total_processed >= max_positions:
+                    break
                 fen = row['FEN']
                 # Convert centipawn evaluation to float value (pawn = 1.0)
                 eval_str = row['Evaluation']
@@ -180,6 +188,7 @@ def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_s
                     
                     # Skip positions with no features (invalid positions)
                     if len(white_features) == 0 or len(black_features) == 0:
+                        print("FOUND INVALID POSITION IN CHUNK")
                         continue
                         
                     fens.append(fen)
@@ -192,10 +201,10 @@ def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_s
 
                 total_processed += 1
             
-            print(f"Successfully processed chunk {chunk_idx} with {len(fens)} positions")
             
             # Save features as tensors
             write_chunk_features_torch(output_dir, chunk_idx, fens, white_features_list, black_features_list, scores)
+            print(f"Successfully processed chunk {chunk_idx + 1} with {len(fens)} positions")
     
         # # Save metadata
         # metadata = {
