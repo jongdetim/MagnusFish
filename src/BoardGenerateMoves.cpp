@@ -5,10 +5,12 @@
 
 void	Board::searchDirection(int direction, int square, u64& moveOptions)
 {
+	int test;
+
 	while (true)
 	{
 		// std::cout << "dir % 8: " << (direction % 8) << std::endl;
-		int test = square % 8 + direction % 8;
+		test = square % 8 + direction % 8;
 		if (test < 0 || test > 7)
 		{
 			break;
@@ -152,18 +154,6 @@ void	Board::generateBlackPawnMoves()
 
 void	Board::generateKnightMoves()
 {
-	constexpr std::array<int, 8>	knightMoves =
-	{
-		2 * NORTH + WEST,
-		2 * NORTH + EAST, 
-		2 * EAST + NORTH,
-		2 * EAST + SOUTH,
-		2 * SOUTH + EAST,
-		2 * SOUTH + WEST,
-		2 * WEST + SOUTH,
-		2 * WEST + NORTH
-	};
-
 	int index = 0;
 	getPieceIndexes(knights & pieces[sideToMove]);
 	while (pieceLocations[index] != 0 && index < 10)
@@ -239,6 +229,59 @@ void	Board::generateRookMoves()
 	}
 }
 
+void	Board::generateCastlingMoves()
+{
+	u64	allPieces = pieces[WHITE] | pieces[BLACK];
+
+	if (sideToMove == WHITE)
+	{
+		if ((castlingRights & whiteKingSide) != 0)
+		{
+			if (inCheck(F1) == false && inCheck(G1) == false)
+			{
+				if ((allPieces >> F1) & 1UL == 0 && (allPieces >> G1) & 1UL == 0)
+				{
+					castlingRights ^= whiteKingSide;
+				}
+			}
+		}
+		if ((castlingRights & whiteQueenSide) != 0)
+		{
+			if (inCheck(D1) == false && inCheck(C1) == false)
+			{
+				if ((allPieces >> D1) & 1UL == 0 && (allPieces >> C1) & 1UL == 0)
+				{
+					castlingRights ^= whiteQueenSide;
+				}
+			}
+		}
+	}
+	else
+	{
+		if ((castlingRights & blackKingSide) != 0)
+		{
+			if (inCheck(F8) == false && inCheck(G8) == false)
+			{
+				if ((allPieces >> F8) & 1UL == 0 && (allPieces >> G8) & 1UL == 0)
+				{
+					castlingRights ^= blackKingSide;
+				}
+			}
+		}
+		if ((castlingRights & blackQueenSide) != 0)
+		{
+			if (inCheck(D8) == false && inCheck(C8) == false)
+			{
+				if ((allPieces >> D8) & 1UL == 0 && (allPieces >> C8) & 1UL == 0)
+				{
+					castlingRights ^= blackQueenSide;
+				}
+			}
+		}
+	}
+}
+
+
 void	Board::generateMoves()
 {
 	// moves.clear();
@@ -255,9 +298,10 @@ void	Board::generateMoves()
 	{
 		generateBlackPawnMoves();
 	}
+	generateCastlingMoves();
 	for (const std::pair<int, u64>& move : moves)
 	{
-		std::cout << "Piece: " << move.first << std::endl;
+		std::cout << "Piece: " << getPiece(move.first) << std::endl;
 		printBitboard(move.second);
 	}
 }

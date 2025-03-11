@@ -31,3 +31,32 @@ void	printBitboard(u64 bitboard)
 	}
 	std::cout << std::endl;
 }
+
+char	Board::getPiece(int square)
+{
+	if (((pawns >> square) & 1) == 1)
+	{
+		return ('P');
+	}
+	else if (((knights >> square) & 1) == 1)
+	{
+		return ('N');
+	}
+	else if (((bishops >> square) & 1) == 1)
+	{
+		return ('B');
+	}
+	else if (((rooks >> square) & 1) == 1)
+	{
+		return ('R');
+	}
+	else if (((queens >> square) & 1) == 1)
+	{
+		return ('Q');
+	}
+	else if (((kings >> square) & 1) == 1)
+	{
+		return ('K');
+	}
+	return ('.');
+}

@@ -4,6 +4,7 @@ Board::Board()
 {
 	sideToMove = WHITE;
 	enPassentSquare = -1;
+	castlingRights = whiteKingSide | whiteQueenSide | blackKingSide | blackQueenSide;
 	pawns = 0;
 	knights = 0;
 	bishops = 0;
@@ -12,6 +13,9 @@ Board::Board()
 	kings = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
+	kingIsChecked = false;
+	halfMoveClock = 0;
+	fullMoveCount = 1;
 	parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
@@ -19,6 +23,7 @@ Board::Board(const std::string& fen)
 {
 	sideToMove = WHITE;
 	enPassentSquare = -1;
+	castlingRights = whiteKingSide | whiteQueenSide | blackKingSide | blackQueenSide;
 	pawns = 0;
 	knights = 0;
 	bishops = 0;
@@ -27,6 +32,9 @@ Board::Board(const std::string& fen)
 	kings = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
+	kingIsChecked = false;
+	halfMoveClock = 0;
+	fullMoveCount = 1;
 	parseFen(fen.c_str());
 }
 
@@ -169,6 +177,7 @@ void	Board::parseFen(const char* fen)
 		fen++;
 	}
 	fen++;
+	pieces[ALL] = pieces[WHITE] | pieces[BLACK];
 	std::cout << fen << std::endl;
 	if (*fen != '-')
 	{
