@@ -1,1 +1,1 @@
-python3 process_dataset.py --input chess-evaluations/chessData.csv --output_dir processed_dataset --max_positions 70508
+python3 process_dataset.py --input chess-evaluations/chessData.csv --output_dir processed_dataset --max_positions 1000000

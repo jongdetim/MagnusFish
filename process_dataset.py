@@ -3,6 +3,7 @@ import numpy as np
 import chess
 import pandas as pd
 import struct
+import gzip
 import tqdm
 import argparse
 from typing import List, Tuple
@@ -93,7 +94,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     print(max(white_indices))
     
     if white_indices:
-        white_indices_tensor = torch.tensor(white_indices, dtype=torch.uint16).t()
+        white_indices_tensor = torch.tensor(white_indices, dtype=torch.int32).t()
         white_values_tensor = torch.tensor(white_values, dtype=torch.bool)
         white_sparse = torch.sparse_coo_tensor(
             white_indices_tensor, 
@@ -103,7 +104,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     else:
         # Empty tensor if no features
         white_sparse = torch.sparse_coo_tensor(
-            torch.zeros((2, 0), dtype=torch.uint16),
+            torch.zeros((2, 0), dtype=torch.int32),
             torch.zeros(0, dtype=torch.bool),
             size=(num_rows, total_features)
         )
@@ -117,7 +118,7 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
             black_values.append(1)
     
     if black_indices:
-        black_indices_tensor = torch.tensor(black_indices, dtype=torch.uint16).t()
+        black_indices_tensor = torch.tensor(black_indices, dtype=torch.int32).t()
         black_values_tensor = torch.tensor(black_values, dtype=torch.bool)
         black_sparse = torch.sparse_coo_tensor(
             black_indices_tensor, 
@@ -127,23 +128,31 @@ def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_
     else:
         # Empty tensor if no features
         black_sparse = torch.sparse_coo_tensor(
-            torch.zeros((2, 0), dtype=torch.uint16),
+            torch.zeros((2, 0), dtype=torch.int32),
             torch.zeros(0, dtype=torch.bool),
             size=(num_rows, total_features)
         )
     
     # Save this chunk
-    chunk_file = f"{dir_name}/chunk_{chunk_idx + 1}.pt"
-    torch.save({
-        'white_features': white_sparse,
-        'black_features': black_sparse,
-        'scores': chunk_scores
-    }, chunk_file, _use_new_zipfile_serialization=True)
+    chunk_file = f"{dir_name}/chunk_{chunk_idx + 1}.pt.gz"
+    with gzip.open(chunk_file, 'wb') as f:
+        torch.save({
+            'white_features': white_sparse,
+            'black_features': black_sparse,
+            'scores': chunk_scores
+        }, f, _use_new_zipfile_serialization=True, pickle_protocol=4)
+
+
+    # torch.save({
+    #     'white_features': white_sparse,
+    #     'black_features': black_sparse,
+    #     'scores': chunk_scores
+    # }, chunk_file, _use_new_zipfile_serialization=True, pickle_protocol=4)
     
     print(f"Saved chunk {chunk_idx+1}/{130}")
     
 
-def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_size = 65536):
+def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_size = 1000000):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir, exist_ok=True)
     
