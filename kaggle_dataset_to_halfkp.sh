@@ -1,1 +1,1 @@
-python3 process_dataset.py process --input chess-evaluations/chessData.csv --output halfkp_dataset.bin --max_positions 10
+python3 process_dataset.py --input chess-evaluations/chessData.csv --output_dir processed_dataset --max_positions 10

@@ -5,6 +5,7 @@ import struct
 import tqdm
 import argparse
 from typing import List, Tuple
+import torch
 
 SQUARE_NUM = 64
 PIECE_NUM = 10  # All piece types except kings (5 types * 2 colors)
@@ -14,7 +15,7 @@ MATE_SCORE = 10000
 # Feature index calculation constants
 FEATURE_DIMENSIONS = (KING_SQUARE_NUM, PIECE_NUM, SQUARE_NUM)
 
-def get_halfkp_indices(board: chess.Board) -> Tuple[List[int], List[int]]:
+def get_halfkp_indices(board):
     white_features = []
     black_features = []
     
@@ -71,141 +72,155 @@ def get_halfkp_indices(board: chess.Board) -> Tuple[List[int], List[int]]:
     
     return white_features, black_features
 
-def save_features_binary(output_file: str, 
-                         fens: List[str], 
-                         white_features: List[List[int]], 
-                         black_features: List[List[int]], 
-                         scores: List[float]):
-    with open(output_file, 'wb') as f:
-        # Write header: number of positions
-        f.write(struct.pack('i', len(fens)))
-        
-        # Write each position
-        for i in range(len(fens)):
-            # Write FEN
-            fen_bytes = fens[i].encode('utf-8')
-            f.write(struct.pack('i', len(fen_bytes)))
-            f.write(fen_bytes)
-            
-            # Write score
-            f.write(struct.pack('f', scores[i]))
-            
-            # Write white features
-            f.write(struct.pack('i', len(white_features[i])))
-            f.write(struct.pack(f'{len(white_features[i])}i', *white_features[i]))
-            
-            # Write black features
-            f.write(struct.pack('i', len(black_features[i])))
-            f.write(struct.pack(f'{len(black_features[i])}i', *black_features[i]))
+def write_chunk_features_torch(dir_name, chunk_idx, fens, white_features, black_features, scores):
+    total_features = KING_SQUARE_NUM * PIECE_NUM * SQUARE_NUM
+    num_rows = len(fens)
+    
 
-def read_features_binary(input_file: str) -> Tuple[List[str], List[List[int]], List[List[int]], List[float]]:
-    fens = []
-    white_features = []
-    black_features = []
-    scores = []
-    
-    with open(input_file, 'rb') as f:
-        # Read number of positions
-        num_positions = struct.unpack('i', f.read(4))[0]
-        
-        for _ in range(num_positions):
-            # Read FEN
-            fen_length = struct.unpack('i', f.read(4))[0]
-            fen = f.read(fen_length).decode('utf-8')
-            fens.append(fen)
-            
-            # Read score
-            score = struct.unpack('f', f.read(4))[0]
-            scores.append(score)
-            
-            # Read white features
-            num_white_features = struct.unpack('i', f.read(4))[0]
-            white_feature_data = f.read(num_white_features * 4)
-            white_feature_list = list(struct.unpack(f'{num_white_features}i', white_feature_data))
-            white_features.append(white_feature_list)
-            
-            # Read black features
-            num_black_features = struct.unpack('i', f.read(4))[0]
-            black_feature_data = f.read(num_black_features * 4)
-            black_feature_list = list(struct.unpack(f'{num_black_features}i', black_feature_data))
-            black_features.append(black_feature_list)
-    
-    return fens, white_features, black_features, scores
+    assert(num_rows == len(scores))
+    # Prepare data for this chunk
+    chunk_scores = torch.tensor([scores[i] for i in range(len(scores))], dtype=torch.float32)
 
-def process_kaggle_dataset(input_file: str, output_file: str, max_positions: int = None):
-    print(f"Reading dataset from {input_file}")
-    df = pd.read_csv(input_file)
+    # Create white perspective sparse tensors
+    white_indices = []
+    white_values = []
+    for i in range(len(fens)):
+        for feature_idx in white_features[i]:
+            white_indices.append([i, feature_idx])
+            white_values.append(1)
     
-    # Validate dataset format - should have 'FEN' and 'Evaluation' columns
-    required_columns = ['FEN', 'Evaluation']
-    for col in required_columns:
-        if col not in df.columns:
-            raise ValueError(f"Dataset missing required column: {col}")
+    if white_indices:
+        white_indices_tensor = torch.tensor(white_indices, dtype=torch.int).t()
+        white_values_tensor = torch.tensor(white_values, dtype=torch.bool)
+        white_sparse = torch.sparse_coo_tensor(
+            white_indices_tensor, 
+            white_values_tensor,
+            size=(num_rows, total_features)
+        )
+    else:
+        # Empty tensor if no features
+        white_sparse = torch.sparse_coo_tensor(
+            torch.zeros((2, 0), dtype=torch.int),
+            torch.zeros(0, dtype=torch.bool),
+            size=(num_rows, total_features)
+        )
     
-    # maximum positions to process
-    if max_positions is not None:
-        df = df.head(max_positions)
+    # Create black perspective sparse tensors
+    black_indices = []
+    black_values = []
+    for i in range(num_rows):
+        for feature_idx in black_features[i]:
+            black_indices.append([i, feature_idx])
+            black_values.append(1)
     
-    num_positions = len(df)
-    print(f"Processing {num_positions} positions")
+    if black_indices:
+        black_indices_tensor = torch.tensor(black_indices, dtype=torch.int).t()
+        black_values_tensor = torch.tensor(black_values, dtype=torch.bool)
+        black_sparse = torch.sparse_coo_tensor(
+            black_indices_tensor, 
+            black_values_tensor,
+            size=(num_rows, total_features)
+        )
+    else:
+        # Empty tensor if no features
+        black_sparse = torch.sparse_coo_tensor(
+            torch.zeros((2, 0), dtype=torch.int),
+            torch.zeros(0, dtype=torch.bool),
+            size=(num_rows, total_features)
+        )
     
-    fens = []
-    white_features_list = []
-    black_features_list = []
-    scores = []
+    # Save this chunk
+    chunk_file = f"{dir_name}/chunk_{chunk_idx + 1}.pt"
+    torch.save({
+        'white_features': white_sparse,
+        'black_features': black_sparse,
+        'scores': chunk_scores
+    }, chunk_file)
     
-    # Process positions in dataset
-    for idx, row in tqdm.tqdm(df.iterrows(), total=num_positions):
-        fen = row['FEN']
-        # Convert centipawn evaluation to float value (pawn = 1.0)
-        eval_str = row['Evaluation']
-        if eval_str[0] == '#':
-            # Checkmate - convert to mate score
-            score = (MATE_SCORE if eval_str[1] == '+' else -MATE_SCORE) / 100.0
-        else:
-            score = float(eval_str) / 100.0
-        
-        # Parse FEN
-        try:
-            board = chess.Board(fen)
-            white_features, black_features = get_halfkp_indices(board)
+    print(f"Saved chunk {chunk_idx+1}/{13}")
+    
+
+def process_kaggle_dataset(input_file, output_dir, max_positions = None, chunk_size = 100000):
+    with open(input_file, 'r') as f:
+        print(f"Reading dataset from {input_file}")
+    
+        total_processed = 0
+        for chunk_idx, chunk in enumerate(pd.read_csv(input_file, chunksize=chunk_size)):
+            if max_positions and total_processed >= max_positions:
+                break
+
+            print(f"Processing chunk {chunk_idx + 1}/{13}")
+
+            # Validate dataset format - should have 'FEN' and 'Evaluation' columns
+            required_columns = ['FEN', 'Evaluation']
+            for col in required_columns:
+                if col not in chunk.columns:
+                    raise ValueError(f"Dataset missing required column: {col}")
             
-            # Skip positions with no features (invalid positions)
-            if len(white_features) == 0 or len(black_features) == 0:
-                continue
+            fens = []
+            white_features_list = []
+            black_features_list = []
+            scores = []
+            
+            # Process positions in dataset
+            for row_idx, row in tqdm.tqdm(chunk.iterrows(), total=len(chunk)):
+                fen = row['FEN']
+                # Convert centipawn evaluation to float value (pawn = 1.0)
+                eval_str = row['Evaluation']
+                if eval_str[0] == '#':
+                    # Checkmate - convert to mate score
+                    score = (MATE_SCORE if eval_str[1] == '+' else -MATE_SCORE) / 100.0
+                else:
+                    score = float(eval_str) / 100.0
                 
-            fens.append(fen)
-            white_features_list.append(white_features)
-            black_features_list.append(black_features)
-            scores.append(score)
+                # Parse FEN
+                try:
+                    board = chess.Board(fen)
+                    white_features, black_features = get_halfkp_indices(board)
+                    
+                    # Skip positions with no features (invalid positions)
+                    if len(white_features) == 0 or len(black_features) == 0:
+                        continue
+                        
+                    fens.append(fen)
+                    white_features_list.append(white_features)
+                    black_features_list.append(black_features)
+                    scores.append(score)
+                    
+                except Exception as e:
+                    print(f"Error processing position {row_idx} (FEN: {fen}): {str(e)}")
+
+                total_processed += 1
             
-        except Exception as e:
-            print(f"Error processing position {idx} (FEN: {fen}): {str(e)}")
+            print(f"Successfully processed chunk {chunk_idx} with {len(fens)} positions")
+            
+            # Save features as tensors
+            write_chunk_features_torch(output_dir, chunk_idx, fens, white_features_list, black_features_list, scores)
     
-    print(f"Successfully processed {len(fens)} valid positions")
+        # # Save metadata
+        # metadata = {
+        #     'total_positions': len(fens),
+        #     'feature_dimensions': FEATURE_DIMENSIONS,
+        #     'total_features': total_features
+        # }
+        
+        # metadata_file = "metadata.pt"
+        # torch.save(metadata, metadata_file)
+        # print(f"Saved metadata to {metadata_file}")
     
-    # Save features to binary file
-    print(f"Saving features to {output_file}")
-    save_features_binary(output_file, fens, white_features_list, black_features_list, scores)
-    print(f"Data saved successfully")
-    
-    # Print statz
-    feature_counts = [len(features) for features in white_features_list]
-    print(f"Average features per position: {np.mean(feature_counts):.2f}")
-    print(f"Min features: {min(feature_counts)}, Max features: {max(feature_counts)}")
+        # # Print statz
+        # feature_counts = [len(features) for features in white_features_list]
+        # print(f"Average features per position: {np.mean(feature_counts):.2f}")
+        # print(f"Min features: {min(feature_counts)}, Max features: {max(feature_counts)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process chess positions and convert to NNUE features')
-    subparsers = parser.add_subparsers(dest='command')
-    
-    process_parser = subparsers.add_parser('process', help='Process dataset')
-    process_parser.add_argument('--input', type=str, required=True, help='Input CSV file (dataset)')
-    process_parser.add_argument('--output', type=str, required=True, help='Output binary file for features')
-    process_parser.add_argument('--max_positions', type=int, help='Maximum number of positions to process')
+
+    parser.add_argument('--input', type=str, required=True, help='Input CSV file (dataset)')
+    parser.add_argument('--output_dir', type=str, required=True, help='Output directory for features')
+    parser.add_argument('--max_positions', type=int, help='Maximum number of positions to process')
     
     args = parser.parse_args()
-    
-    if args.command == 'process':
-        process_kaggle_dataset(args.input, args.output, args.max_positions)
-    else:
-        parser.print_help()
+    process_kaggle_dataset(args.input, args.output_dir, args.max_positions)
+    # parser.print_help()
+
