@@ -51,8 +51,26 @@ enum startingPawns
 
 enum files
 {
-	A_FILE = 0,
-	H_FILE = 7
+	A_FILE = 0x0101010101010101,
+	B_FILE = 0x0202020202020202,
+	C_FILE = 0x0404040404040404,
+	D_FILE = 0x0808080808080808,
+	E_FILE = 0x1010101010101010,
+	F_FILE = 0x2020202020202020,
+	G_FILE = 0x4040404040404040,
+	H_FILE = 0x8080808080808080
+};
+
+enum rows
+{
+	ROW_1 = 0xFF,
+	ROW_2 = 0xFF00,
+	ROW_3 = 0xFF0000,
+	ROW_4 = 0xFF000000,
+	ROW_5 = 0xFF00000000,
+	ROW_6 = 0xFF0000000000,
+	ROW_7 = 0xFF000000000000,
+	ROW_8 = 0xFF00000000000000
 };
 
 enum squares
@@ -90,13 +108,17 @@ class Board
 
 	Board&	operator=(const Board& other);
 
-	void	generateMoves();
+	/*	Helpers for searching	*/
+
 	void	getPieceIndexes(u64 bitboard);
 	char	getPiece(int square);
-	void	searchDirection(int direction, int square, u64& moves);
+	bool	compareSquares(int square);
+	void	searchOrthogonalDirection(int direction, int square, u64& moves);
+	void	searchDiagonalDirection(int direction, int square, u64& moveOptions);
 
 	/*	Move generators	*/
 
+	void	generateMoves();
 	void	generateBishopMoves();
 	void	generateBlackPawnMoves();
 	void	generateCastlingMoves();
@@ -108,9 +130,10 @@ class Board
 
 	/*	Checking for checks	*/
 	
-	bool	inCheck();
-	bool	seesBishop(int king, int bishop);
-	bool	seesKnight(int king, int knight);
+	bool	inCheck(int kingIndex);
+	bool	inKnightCheck(int king);
+	bool	orthogonallyInCheck(int king);
+	bool	diagonallyInCheck(int king);
 	void	makeMove(Move move);
 
 	/*	Miscellaneous states	*/
@@ -135,7 +158,7 @@ class Board
 	std::vector<std::pair<int, u64>>	moves;
 
 	void	parseFen(const char* fen);
-	std::array<int, 10> pieceLocations;
+	std::array<int, 10> pieceSQs;
 };
 
 std::ostream&	operator<<(std::ostream& out, const Board& board);

@@ -3,20 +3,53 @@
 /*	Loops until the edge of the board or the first piece is in the way.
 	If enemy piece, square is included.	*/
 
-void	Board::searchDirection(int direction, int square, u64& moveOptions)
+
+static bool	isOnOuterFile(int square)
+{
+	return (((1UL << square) & A_FILE) != 0 || ((1UL << square) & H_FILE) != 0);
+}
+
+void	Board::searchDiagonalDirection(int direction, int square, u64& moveOptions)
+{
+	while (true)
+	{
+		if (isOnOuterFile(square) == true)
+		{
+			square += direction;
+			if (isOnOuterFile(square) == true)
+			{
+				break;
+			}
+		}
+		else
+		{
+			square += direction;
+		}
+		if (square < 0 || square > 63 || ((pieces[sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+		moveOptions |= 1UL << square;
+		if (((pieces[!sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+	}
+}
+
+void	Board::searchOrthogonalDirection(int direction, int square, u64& moveOptions)
 {
 	int test;
 
-	while (true)
+	while (square < 0 || square > 63)
 	{
-		// std::cout << "dir % 8: " << (direction % 8) << std::endl;
 		test = square % 8 + direction % 8;
 		if (test < 0 || test > 7)
 		{
 			break;
 		}
 		square += direction;
-		if (square < 0 || square > 63 || ((pieces[sideToMove] >> square) & 1UL) == 1)
+		if (((pieces[sideToMove] >> square) & 1UL) == 1)
 		{
 			break;
 		}
@@ -74,39 +107,37 @@ void	Board::generateWhitePawnMoves()
 {
 	int index = 0;
 	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
-		int square = pieceLocations[index] + NORTH;
+		int square = pieceSQs[index] + NORTH;
 
-		if (((pieces[WHITE] >> square) & 1UL) == 0 && ((pieces[BLACK] >> square) & 1UL) == 0)
+		if (((pieces[ALL] >> square) & 1UL) == 0)
 		{
 			moveOptions |= 1UL << square;
 		}
 		square += NORTH;
-		if (pieceLocations[index] >= whitePawnA2 && 
-			((pieces[WHITE] >> square) & 1UL) == 0 && \
-			((pieces[BLACK] >> square & 1UL) == 0))
+		if ((pieceSQs[index] & ROW_1) != 0 && ((pieces[ALL] >> square) & 1UL) == 0)
 		{
 			moveOptions |= 1UL << square;
 		}
-		if (pieceLocations[index] % 8 != A_FILE)
+		if ((pieceSQs[index] & A_FILE) != 0)
 		{
-			square = pieceLocations[index] + NORTHWEST;
+			square = pieceSQs[index] + NORTHWEST;
 			if (((pieces[BLACK] >> square) & 1UL) == 1)
 			{
 				moveOptions |= 1UL << square;
 			}
 		}
-		if (pieceLocations[index] % 8 != H_FILE)
+		if ((pieceSQs[index] & H_FILE) != 0)
 		{
-			square = pieceLocations[index] + NORTHEAST;
+			square = pieceSQs[index] + NORTHEAST;
 			if (((pieces[BLACK] >> square) & 1UL) == 1 || square == enPassentSquare)
 			{
 				moveOptions |= 1UL << square;
 			}
 		}
-		moves.push_back({pieceLocations[index], moveOptions});
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }
@@ -115,39 +146,39 @@ void	Board::generateBlackPawnMoves()
 {
 	int index = 0;
 	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
-		int square = pieceLocations[index] + SOUTH;
+		int square = pieceSQs[index] + SOUTH;
 
 		if (((pieces[WHITE] >> square) & 1UL) == 0 && ((pieces[BLACK] >> square) & 1UL) == 0)
 		{
 			moveOptions |= 1UL << square;
 		}
 		square += SOUTH;
-		if (pieceLocations[index] <= blackPawnH7 && 
+		if (pieceSQs[index] <= blackPawnH7 && 
 			(((pieces[WHITE] >> square) & 1UL) == 0 && \
 			((pieces[BLACK] >> square) & 1UL) == 0))
 		{
 			moveOptions |= 1UL << square;
 		}
-		if (pieceLocations[index] % 8 != A_FILE)
+		if (pieceSQs[index] % 8 != A_FILE)
 		{
-			square = pieceLocations[index] + SOUTHWEST;
+			square = pieceSQs[index] + SOUTHWEST;
 			if (((pieces[WHITE] >> square) & 1UL) == 1)
 			{
 				moveOptions |= 1UL << square;
 			}
 		}
-		if (pieceLocations[index] % 8 != H_FILE)
+		if (pieceSQs[index] % 8 != H_FILE)
 		{
-			square = pieceLocations[index] + SOUTHEAST;
+			square = pieceSQs[index] + SOUTHEAST;
 			if (((pieces[WHITE] >> square) & 1UL) == 1 || square == enPassentSquare)
 			{
 				moveOptions |= 1UL << square;
 			}
 		}
-		moves.push_back({pieceLocations[index], moveOptions});
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }
@@ -156,23 +187,23 @@ void	Board::generateKnightMoves()
 {
 	int index = 0;
 	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
 		for (int i = 0; i < 8; i++)
 		{
-			int test = pieceLocations[index] % 8 + knightMoves[i] % 8;
+			int test = pieceSQs[index] % 8 + knightMoves[i] % 8;
 			if (test < 0 || test > 7)
 			{
 				continue;
 			}
-			int square = pieceLocations[index] + knightMoves[i];
+			int square = pieceSQs[index] + knightMoves[i];
 			if (square >= 0 && square < 64 && ((pieces[sideToMove] >> square) & 1UL) == 0)
 			{
 				moveOptions |= 1UL << square;
 			}
 		}
-		moves.push_back({pieceLocations[index], moveOptions});
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }
@@ -181,18 +212,18 @@ void	Board::generateQueenMoves()
 {
 	int index = 0;
 	getPieceIndexes(queens & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
-		searchDirection(NORTHWEST, pieceLocations[index], moveOptions);
-		searchDirection(NORTHEAST, pieceLocations[index], moveOptions);
-		searchDirection(SOUTHWEST, pieceLocations[index], moveOptions);
-		searchDirection(SOUTHEAST, pieceLocations[index], moveOptions);
-		searchDirection(WEST, pieceLocations[index], moveOptions);
-		searchDirection(EAST, pieceLocations[index], moveOptions);
-		searchDirection(NORTH, pieceLocations[index], moveOptions);
-		searchDirection(SOUTH, pieceLocations[index], moveOptions);
-		moves.push_back({pieceLocations[index], moveOptions});
+		searchDiagonalDirection(NORTHWEST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(NORTHEAST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(SOUTHWEST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(SOUTHEAST, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(WEST, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(EAST, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(NORTH, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(SOUTH, pieceSQs[index], moveOptions);
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }
@@ -201,14 +232,14 @@ void	Board::generateBishopMoves()
 {
 	int index = 0;
 	getPieceIndexes(bishops & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
-		searchDirection(NORTHWEST, pieceLocations[index], moveOptions);
-		searchDirection(NORTHEAST, pieceLocations[index], moveOptions);
-		searchDirection(SOUTHWEST, pieceLocations[index], moveOptions);
-		searchDirection(SOUTHEAST, pieceLocations[index], moveOptions);
-		moves.push_back({pieceLocations[index], moveOptions});
+		searchDiagonalDirection(NORTHWEST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(NORTHEAST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(SOUTHWEST, pieceSQs[index], moveOptions);
+		searchDiagonalDirection(SOUTHEAST, pieceSQs[index], moveOptions);
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }
@@ -217,14 +248,14 @@ void	Board::generateRookMoves()
 {
 	int index = 0;
 	getPieceIndexes(rooks & pieces[sideToMove]);
-	while (pieceLocations[index] != 0 && index < 10)
+	while (pieceSQs[index] != 0 && index < 10)
 	{
 		u64 moveOptions = 0;
-		searchDirection(WEST, pieceLocations[index], moveOptions);
-		searchDirection(EAST, pieceLocations[index], moveOptions);
-		searchDirection(NORTH, pieceLocations[index], moveOptions);
-		searchDirection(SOUTH, pieceLocations[index], moveOptions);
-		moves.push_back({pieceLocations[index], moveOptions});
+		searchOrthogonalDirection(WEST, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(EAST, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(NORTH, pieceSQs[index], moveOptions);
+		searchOrthogonalDirection(SOUTH, pieceSQs[index], moveOptions);
+		moves.push_back({pieceSQs[index], moveOptions});
 		index++;
 	}
 }

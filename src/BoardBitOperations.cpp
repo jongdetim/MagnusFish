@@ -8,13 +8,13 @@ void	Board::getPieceIndexes(u64 bitboard)
 	{
 		if (((bitboard >> i) & 1UL) == 1)
 		{
-			pieceLocations[index] = i;
+			pieceSQs[index] = i;
 			index++;
 		}
 	}
 	while (index < 10)
 	{
-		pieceLocations[index] = 0;
+		pieceSQs[index] = 0;
 		index++;
 	}
 }
@@ -59,4 +59,15 @@ char	Board::getPiece(int square)
 		return ('K');
 	}
 	return ('.');
+}
+
+bool	Board::compareSquares(int square)
+{
+	for (int i = 0; pieceSQs[i] != 0 && i < 10; i++)
+	{
+		if (square == pieceSQs[i])
+		{
+			return (true);
+		}
+	}
 }
