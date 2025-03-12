@@ -12,10 +12,9 @@ void	Board::getPieceIndexes(u64 bitboard)
 			index++;
 		}
 	}
-	while (index < 10)
+	for (; index < 10; index++)
 	{
 		pieceSQs[index] = 0;
-		index++;
 	}
 }
 
@@ -34,27 +33,27 @@ void	printBitboard(u64 bitboard)
 
 char	Board::getPiece(int square)
 {
-	if (((pawns >> square) & 1) == 1)
+	if (((pawns >> square) & 1UL) == 1)
 	{
 		return ('P');
 	}
-	else if (((knights >> square) & 1) == 1)
+	else if (((knights >> square) & 1UL) == 1)
 	{
 		return ('N');
 	}
-	else if (((bishops >> square) & 1) == 1)
+	else if (((bishops >> square) & 1UL) == 1)
 	{
 		return ('B');
 	}
-	else if (((rooks >> square) & 1) == 1)
+	else if (((rooks >> square) & 1UL) == 1)
 	{
 		return ('R');
 	}
-	else if (((queens >> square) & 1) == 1)
+	else if (((queens >> square) & 1UL) == 1)
 	{
 		return ('Q');
 	}
-	else if (((kings >> square) & 1) == 1)
+	else if (((kings >> square) & 1UL) == 1)
 	{
 		return ('K');
 	}
@@ -70,4 +69,5 @@ bool	Board::compareSquares(int square)
 			return (true);
 		}
 	}
+	return (false);
 }

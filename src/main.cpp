@@ -1,4 +1,4 @@
-#include "MagnusFish.hpp"
+#include "Board.hpp"
 
 int main()
 {

@@ -41,7 +41,7 @@ void	Board::searchOrthogonalDirection(int direction, int square, u64& moveOption
 {
 	int test;
 
-	while (square < 0 || square > 63)
+	while (square >= 0 && square < 64)
 	{
 		test = square % 8 + direction % 8;
 		if (test < 0 || test > 7)
@@ -162,7 +162,7 @@ void	Board::generateBlackPawnMoves()
 		{
 			moveOptions |= 1UL << square;
 		}
-		if (pieceSQs[index] % 8 != A_FILE)
+		if ((pieceSQs[index] & A_FILE) != 0)
 		{
 			square = pieceSQs[index] + SOUTHWEST;
 			if (((pieces[WHITE] >> square) & 1UL) == 1)
@@ -170,7 +170,7 @@ void	Board::generateBlackPawnMoves()
 				moveOptions |= 1UL << square;
 			}
 		}
-		if (pieceSQs[index] % 8 != H_FILE)
+		if ((pieceSQs[index] & H_FILE) != 0)
 		{
 			square = pieceSQs[index] + SOUTHEAST;
 			if (((pieces[WHITE] >> square) & 1UL) == 1 || square == enPassentSquare)
@@ -270,7 +270,7 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(F1) == false && inCheck(G1) == false)
 			{
-				if ((allPieces >> F1) & 1UL == 0 && (allPieces >> G1) & 1UL == 0)
+				if (((allPieces >> F1) & 1UL) == 0 && ((allPieces >> G1) & 1UL) == 0)
 				{
 					castlingRights ^= whiteKingSide;
 				}
@@ -280,7 +280,7 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(D1) == false && inCheck(C1) == false)
 			{
-				if ((allPieces >> D1) & 1UL == 0 && (allPieces >> C1) & 1UL == 0)
+				if (((allPieces >> D1) & 1UL) == 0 && ((allPieces >> C1) & 1UL) == 0)
 				{
 					castlingRights ^= whiteQueenSide;
 				}
@@ -293,7 +293,7 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(F8) == false && inCheck(G8) == false)
 			{
-				if ((allPieces >> F8) & 1UL == 0 && (allPieces >> G8) & 1UL == 0)
+				if (((allPieces >> F8) & 1UL) == 0 && ((allPieces >> G8) & 1UL) == 0)
 				{
 					castlingRights ^= blackKingSide;
 				}
@@ -303,7 +303,7 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(D8) == false && inCheck(C8) == false)
 			{
-				if ((allPieces >> D8) & 1UL == 0 && (allPieces >> C8) & 1UL == 0)
+				if (((allPieces >> D8) & 1UL) == 0 && ((allPieces >> C8) & 1UL) == 0)
 				{
 					castlingRights ^= blackQueenSide;
 				}
@@ -315,7 +315,6 @@ void	Board::generateCastlingMoves()
 
 void	Board::generateMoves()
 {
-	// moves.clear();
 	generateRookMoves();
 	generateBishopMoves();
 	generateKnightMoves();

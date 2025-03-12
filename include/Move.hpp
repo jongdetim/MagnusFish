@@ -1,12 +1,13 @@
-#include "MagnusFish.hpp"
+#pragma once
+
+#include "Board.hpp"
 
 struct Move
 {
 	int		startingSquare;
 	int		newSquare;
-	bool	isCapture;
+	int		capturedPiece;
 	bool	isEnPassent;
 	bool	isPromotion;
-	bool	isCastle;
-	bool	isCheck;
+	int		castle;
 };

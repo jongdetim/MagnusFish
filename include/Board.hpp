@@ -1,8 +1,16 @@
 #pragma once
 
-#include "MagnusFish.hpp"
 #include "Move.hpp"
 #include <map>
+#include <array>
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <string>
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint64_t u64;
 
 enum colors
 {
@@ -14,9 +22,9 @@ enum colors
 enum castlingRights
 {
 	whiteKingSide = 1,
-	whiteQueenSide = 1 << 1,
-	blackKingSide = 1 << 2,
-	blackQueenSide = 1 << 3,
+	whiteQueenSide = 1UL << 1,
+	blackKingSide = 1UL << 2,
+	blackQueenSide = 1UL << 3,
 };
 
 enum pieces
@@ -26,7 +34,8 @@ enum pieces
 	BISHOP,
 	ROOK,
 	QUEEN,
-	KING
+	KING,
+	NONE
 };
 
 enum directions
@@ -108,6 +117,8 @@ class Board
 
 	Board&	operator=(const Board& other);
 
+	void	reset();
+
 	/*	Helpers for searching	*/
 
 	void	getPieceIndexes(u64 bitboard);
@@ -134,6 +145,7 @@ class Board
 	bool	inKnightCheck(int king);
 	bool	orthogonallyInCheck(int king);
 	bool	diagonallyInCheck(int king);
+	bool	inPawnCheck(int kingIndex);
 	void	makeMove(Move move);
 
 	/*	Miscellaneous states	*/
@@ -162,3 +174,5 @@ class Board
 };
 
 std::ostream&	operator<<(std::ostream& out, const Board& board);
+void	run();
+void	printBitboard(u64 bitboard);

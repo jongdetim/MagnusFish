@@ -4,7 +4,7 @@ Board::Board()
 {
 	sideToMove = WHITE;
 	enPassentSquare = -1;
-	castlingRights = whiteKingSide | whiteQueenSide | blackKingSide | blackQueenSide;
+	castlingRights = 0;
 	pawns = 0;
 	knights = 0;
 	bishops = 0;
@@ -13,17 +13,17 @@ Board::Board()
 	kings = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
+	pieces[ALL] = 0;
 	kingIsChecked = false;
 	halfMoveClock = 0;
 	fullMoveCount = 1;
-	parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
 Board::Board(const std::string& fen)
 {
 	sideToMove = WHITE;
 	enPassentSquare = -1;
-	castlingRights = whiteKingSide | whiteQueenSide | blackKingSide | blackQueenSide;
+	castlingRights = 0;
 	pawns = 0;
 	knights = 0;
 	bishops = 0;
@@ -32,6 +32,7 @@ Board::Board(const std::string& fen)
 	kings = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
+	pieces[ALL] = 0;
 	kingIsChecked = false;
 	halfMoveClock = 0;
 	fullMoveCount = 1;
@@ -62,8 +63,31 @@ Board&	Board::operator=(const Board& other)
 		this->kings = other.kings;
 		this->pieces[WHITE] = other.pieces[WHITE];
 		this->pieces[BLACK] = other.pieces[BLACK];
+		this->pieces[ALL] = other.pieces[ALL];
+		this->kingIsChecked = other.kingIsChecked;
+		this->halfMoveClock = other.halfMoveClock;
+		this->fullMoveCount = other.fullMoveCount;
 	}
 	return (*this);
+}
+
+void	Board::reset()
+{
+	sideToMove = WHITE;
+	enPassentSquare = -1;
+	castlingRights = 0;
+	pawns = 0;
+	knights = 0;
+	bishops = 0;
+	rooks = 0;
+	queens = 0;
+	kings = 0;
+	pieces[WHITE] = 0;
+	pieces[BLACK] = 0;
+	pieces[ALL] = 0;
+	kingIsChecked = false;
+	halfMoveClock = 0;
+	fullMoveCount = 0;
 }
 
 void	Board::parseFen(const char* fen)
@@ -144,129 +168,156 @@ void	Board::parseFen(const char* fen)
 		i++;
 		fen++;
 	}
+	pieces[ALL] = pieces[WHITE] | pieces[BLACK];
 	fen++;
+	std::cout << fen << std::endl;
 	sideToMove = WHITE;
 	if (*fen == 'b')
 	{
 		sideToMove = BLACK;
 	}
 	fen += 2;
-	while (*fen != ' ')
+	if (*fen == '-')
 	{
-		switch (*fen)
+		fen += 2;
+	}
+	else
+	{
+		while (*fen != ' ')
 		{
-			case 'K':
-				castlingRights |= whiteKingSide;
-				break;
+			switch (*fen)
+			{
+				case 'K':
+					castlingRights |= whiteKingSide;
+					break;
 
-			case 'Q':
-				castlingRights |= whiteQueenSide;
-				break;
+				case 'Q':
+					castlingRights |= whiteQueenSide;
+					break;
 
-			case 'k':
-				castlingRights |= blackKingSide;
-				break;
+				case 'k':
+					castlingRights |= blackKingSide;
+					break;
 
-			case 'q':
-				castlingRights |= blackQueenSide;
-				break;
-			
-			default:
-				;
+				case 'q':
+					castlingRights |= blackQueenSide;
+					break;
+				
+				case '-':
+					break;
+
+				default:
+					;
+			}
+			fen++;
 		}
 		fen++;
 	}
-	fen++;
-	pieces[ALL] = pieces[WHITE] | pieces[BLACK];
-	std::cout << fen << std::endl;
 	if (*fen != '-')
 	{
-		enPassentSquare = (8 - fen[0] - 'a') * 8 + fen[1] - '0';
+		std::cout << "file: " << (int)(fen[0] - 'a') << " rank: " << (int)(8 - (fen[1] - '0')) << std::endl;
+		enPassentSquare =  8 * (8 - (fen[1] - '0')) + (fen[0] - 'a');
 		fen++;
 	}
 	fen += 2;
-	std::cout << fen << std::endl;
 	halfMoveClock = atoi(fen);
 	while (*fen != ' ')
 	{
 		fen++;
 	}
 	fen++;
-	std::cout << fen << std::endl;
 	fullMoveCount = atoi(fen);
 }
 
-std::ostream&	operator<<(std::ostream& out, const Board& board)
+std::ostream& operator<<(std::ostream& out, const Board& board)
 {
-	std::vector<char>	visualBoard(64, '.');
-	std::array<u64, 12>		pieces =
-	{
-		board.pawns & board.pieces[WHITE],
-		board.knights & board.pieces[WHITE],
-		board.bishops & board.pieces[WHITE],
-		board.rooks & board.pieces[WHITE],
-		board.queens & board.pieces[WHITE],
-		board.kings & board.pieces[WHITE],
-		board.pawns & (~board.pieces[WHITE]),
-		board.knights & (~board.pieces[WHITE]),
-		board.bishops & (~board.pieces[WHITE]),
-		board.rooks & (~board.pieces[WHITE]),
-		board.queens & (~board.pieces[WHITE]),
-		board.kings & (~board.pieces[WHITE]),
-	};
-	std::map<int, char>	intToChar =
-	{
-		{0, 'P'}, {1, 'N'},	{2, 'B'},
-		{3, 'R'}, {4, 'Q'},	{5, 'K'},
-		{6, 'p'}, {7, 'n'}, {8, 'b'},
-		{9, 'r'}, {10, 'q'}, {11, 'k'}
-	};
+    const std::string RESET = "\033[0m";
+	const std::string GREEN = "\033[0;32m";
 
-	// for (int i = 0; i < 12; i++)
-	// {
-	// 	std::cout << "Bitboard of: " << intToChar.at(i) << std::endl;
-	// 	printBitboard(pieces[i]);
-	// }
-	for (int pos = 0; pos < 12; pos++)
+    std::vector<std::string> visualBoard(64, "  ");
+    std::array<u64, 12> pieces =
+    {
+        board.pawns & board.pieces[WHITE],
+        board.knights & board.pieces[WHITE],
+        board.bishops & board.pieces[WHITE],
+        board.rooks & board.pieces[WHITE],
+        board.queens & board.pieces[WHITE],
+        board.kings & board.pieces[WHITE],
+        board.pawns & (board.pieces[BLACK]),
+        board.knights & (board.pieces[BLACK]),
+        board.bishops & (board.pieces[BLACK]),
+        board.rooks & (board.pieces[BLACK]),
+        board.queens & (board.pieces[BLACK]),
+        board.kings & (board.pieces[BLACK]),
+    };
+    std::map<int, std::string> pieceSymbols =
+    {
+		{0, "♟ "}, {1, "♞ "}, {2, "♝ "},
+		{3, "♜ "}, {4, "♛ "}, {5, "♚ "},
+		{6, "♙ "}, {7, "♘ "}, {8, "♗ "},
+		{9, "♖ "}, {10, "♕ "}, {11, "♔ "}
+    };
+
+    for (int pos = 0; pos < 12; pos++)
+    {
+        for (size_t square = 0; square < 64; square++)
+        {
+            if (((pieces[pos] >> (63 - square)) & 1UL) == 1)
+            {
+                visualBoard[square] = pieceSymbols.at(pos);
+            }
+        }
+    }
+
+    out << "sideToMove: ";
+    if (board.sideToMove == WHITE)
 	{
-		for (size_t square = 0; square < 64; square++)
-		{
-			if (((pieces[pos] >> square) & 1UL) == 1)
-			{
-				visualBoard[square] = intToChar.at(pos);
-			}
-		}
-	}
-	out << "sideToMove: ";
-	if (board.sideToMove == WHITE)
 		out << "white";
-	else
+	}
+    else
+	{
 		out << "black";
-	out << std::endl;
-	out << "En passent square: " << board.enPassentSquare << std::endl;
-	out << "Castling rights: ";
-	for (int i = 0; i < 4; i++)
-	{
-		if (((board.castlingRights >> i) & 1) == 1)
-		{
-			out << "Y";
-		}
-		else
-		{
-			out << "N";
-		}
 	}
-	out << std::endl;
-	out << "Half moves since last capture/pawn move: " << (int)board.halfMoveClock << std::endl;
-	out << "Move: " << (int)board.fullMoveCount << std::endl;
-	out << "\nBoard:";
-	for (int x = 0; x < 64; x++)
+    out << std::endl;
+    out << "Castling rights: ";
+    for (int i = 0; i < 4; i++)
+    {
+        if (((board.castlingRights >> i) & 1UL) == 1)
+        {
+            out << "Y";
+        }
+        else
+        {
+            out << "N";
+        }
+    }
+    out << std::endl;
+	if (board.enPassentSquare != -1)
 	{
-		if (x % 8 == 0)
-		{
-			out << std::endl;
-		}
-		out << visualBoard[x];
+    	out << "En passent square: " << board.enPassentSquare << std::endl;
 	}
-	return (out);
+	if (board.halfMoveClock != 0)
+	{
+	    out << "Half moves since last capture/pawn move: " << (int)board.halfMoveClock << std::endl;
+	}
+	if (board.fullMoveCount != 1)
+	{
+	    out << "Move: " << (int)board.fullMoveCount << std::endl;
+	}
+    
+	out << "\n  +----------------+\n";
+	for (int rank = 7; rank >= 0; rank--)
+	{
+		out << (rank + 1) << " |";
+		for (int file = 7; file >= 0; file--)
+		{
+			int square = rank * 8 + file;
+			out << GREEN;
+			out << visualBoard[square] << RESET;
+		}
+		out << "|\n";
+	}
+	out << "  +----------------+\n";
+	out << "   a b c d e f g h\n";
+    return (out);
 }

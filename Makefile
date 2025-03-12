@@ -1,27 +1,40 @@
 NAME		=	chessbot
+TEST		=	tester
 RM			=	rm -rf
 CC			=	c++
 CPPFLAGS	=	-Wall  -Wextra -std=c++20 -g #-Werror
 HEADERS		=	-I include
-SRCS		=	Board.cpp \
-				BoardBitOperations.cpp \
-				BoardGenerateMoves.cpp \
-				inputLoop.cpp \
-				main.cpp \
-				search.cpp \
-				utils.cpp \
-
-OBJS		=	$(SRCS:%.cpp=$(OBJDIR)/%.o)
 SRCDIR		=	src
 OBJDIR		=	objs
 
+SRCS		=	Board.cpp \
+				BoardBitOperations.cpp \
+				BoardCheckChecks.cpp \
+				BoardExecute.cpp \
+				BoardGenerateMoves.cpp \
+				inputLoop.cpp \
+				search.cpp \
+				utils.cpp \
+
+MAIN		=	main.cpp
+TESTMAIN	=	tests.cpp
+
+OBJS		=	$(SRCS:%.cpp=$(OBJDIR)/%.o)
+MAINOBJ		=	$(MAIN:%.cpp=$(OBJDIR)/%.o)
+T_MAIN		=	$(TESTMAIN:%.cpp=$(OBJDIR)/%.o)
+
 all:	$(NAME)
+
+test:	$(TEST)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
-$(NAME): $(OBJDIR) $(OBJS)
-	$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
+$(NAME): $(OBJDIR) $(OBJS) $(MAINOBJ)
+	$(CC) $(CPPFLAGS) $(OBJS) $(MAINOBJ) $(HEADERS) -o $(NAME)
+
+$(TEST): $(OBJDIR) $(OBJS) $(T_MAIN)
+	$(CC) $(CPPFLAGS) $(OBJS) $(T_MAIN) $(HEADERS) -o $(TEST)
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	$(CC) -c $^ $(CPPFLAGS) $(HEADERS) -o $@
@@ -31,7 +44,10 @@ clean:
 
 fclean: clean
 	$(RM) $(NAME)
+	$(RM) $(TEST)
 
 re: fclean all
+
+retest: fclean test
 
 .PHONY: all clean fclean re
