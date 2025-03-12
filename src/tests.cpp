@@ -8,13 +8,10 @@
 #define RED "\033[31m"
 #define RESET "\033[0m"
 
-// Include your chess engine header
-// #include "your_chess_engine.h"
-
 struct TestCase
 {
     std::string fen;
-    bool expectedResult;
+    bool		expectedResult;
 };
 
 void runTests(const std::vector<TestCase>& tests)
@@ -35,7 +32,7 @@ void runTests(const std::vector<TestCase>& tests)
 		board.parseFen(test.fen.c_str());
 
 		std::cout << board << std::endl;
-		board.getPieceIndexes(board.kings & board.pieces[board.sideToMove]);
+		board.getPieceIndexes(board.pieces[KING] & board.pieces[board.sideToMove]);
         bool result = board.inCheck(board.pieceSQs[0]);
         
         bool passed_test = (result == test.expectedResult);

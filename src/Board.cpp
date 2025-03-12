@@ -5,12 +5,12 @@ Board::Board()
 	sideToMove = WHITE;
 	enPassentSquare = -1;
 	castlingRights = 0;
-	pawns = 0;
-	knights = 0;
-	bishops = 0;
-	rooks = 0;
-	queens = 0;
-	kings = 0;
+	pieces[PAWN] = 0;
+	pieces[KNIGHT] = 0;
+	pieces[BISHOP] = 0;
+	pieces[ROOK] = 0;
+	pieces[QUEEN] = 0;
+	pieces[KING] = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
 	pieces[ALL] = 0;
@@ -24,12 +24,12 @@ Board::Board(const std::string& fen)
 	sideToMove = WHITE;
 	enPassentSquare = -1;
 	castlingRights = 0;
-	pawns = 0;
-	knights = 0;
-	bishops = 0;
-	rooks = 0;
-	queens = 0;
-	kings = 0;
+	pieces[PAWN] = 0;
+	pieces[KNIGHT] = 0;
+	pieces[BISHOP] = 0;
+	pieces[ROOK] = 0;
+	pieces[QUEEN] = 0;
+	pieces[KING] = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
 	pieces[ALL] = 0;
@@ -55,12 +55,12 @@ Board&	Board::operator=(const Board& other)
 		this->enPassentSquare = other.enPassentSquare;
 		this->castlingRights = other.castlingRights;
 		this->sideToMove = other.sideToMove;
-		this->pawns = other.pawns;
-		this->knights = other.knights;
-		this->bishops = other.bishops;
-		this->rooks = other.rooks;
-		this->queens = other.queens;
-		this->kings = other.kings;
+		this->pieces[PAWN] = other.pieces[PAWN];
+		this->pieces[KNIGHT] = other.pieces[KNIGHT];
+		this->pieces[BISHOP] = other.pieces[BISHOP];
+		this->pieces[ROOK] = other.pieces[ROOK];
+		this->pieces[QUEEN] = other.pieces[QUEEN];
+		this->pieces[KING] = other.pieces[KING];
 		this->pieces[WHITE] = other.pieces[WHITE];
 		this->pieces[BLACK] = other.pieces[BLACK];
 		this->pieces[ALL] = other.pieces[ALL];
@@ -76,12 +76,12 @@ void	Board::reset()
 	sideToMove = WHITE;
 	enPassentSquare = -1;
 	castlingRights = 0;
-	pawns = 0;
-	knights = 0;
-	bishops = 0;
-	rooks = 0;
-	queens = 0;
-	kings = 0;
+	pieces[PAWN] = 0;
+	pieces[KNIGHT] = 0;
+	pieces[BISHOP] = 0;
+	pieces[ROOK] = 0;
+	pieces[QUEEN] = 0;
+	pieces[KING] = 0;
 	pieces[WHITE] = 0;
 	pieces[BLACK] = 0;
 	pieces[ALL] = 0;
@@ -99,62 +99,62 @@ void	Board::parseFen(const char* fen)
 		switch (*fen)
 		{
 			case 'P':
-				pawns |= 1UL << i;
+				pieces[PAWN] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'N':
-				knights |= 1UL << i;
+				pieces[KNIGHT] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'B':
-				bishops |= 1UL << i;
+				pieces[BISHOP] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'R':
-				rooks |= 1UL << i;
+				pieces[ROOK] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'Q':
-				queens |= 1UL << i;
+				pieces[QUEEN] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'K':
-				kings |= 1UL << i;
+				pieces[KING] |= 1UL << i;
 				pieces[WHITE] |= 1UL << i;
 				break;
 
 			case 'p':
-				pawns |= 1UL << i;
+				pieces[PAWN] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
 			case 'n':
-				knights |= 1UL << i;
+				pieces[KNIGHT] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
 			case 'b':
-				bishops |= 1UL << i;
+				pieces[BISHOP] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
 			case 'r':
-				rooks |= 1UL << i;
+				pieces[ROOK] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
 			case 'q':
-				queens |= 1UL << i;
+				pieces[QUEEN] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
 			case 'k':
-				kings |= 1UL << i;
+				pieces[KING] |= 1UL << i;
 				pieces[BLACK] |= 1UL << i;
 				break;
 
@@ -215,7 +215,6 @@ void	Board::parseFen(const char* fen)
 	}
 	if (*fen != '-')
 	{
-		std::cout << "file: " << (int)(fen[0] - 'a') << " rank: " << (int)(8 - (fen[1] - '0')) << std::endl;
 		enPassentSquare =  8 * (8 - (fen[1] - '0')) + (fen[0] - 'a');
 		fen++;
 	}
@@ -227,6 +226,34 @@ void	Board::parseFen(const char* fen)
 	}
 	fen++;
 	fullMoveCount = atoi(fen);
+	for (int i = 0; i < 64; i++)
+	{
+		indexBoard[i] = NONE;
+		if ((pieces[PAWN] >> i) & 1UL)
+		{
+			indexBoard[i] = PAWN;
+		}
+		else if ((pieces[KNIGHT] >> i) & 1UL)
+		{
+			indexBoard[i] = KNIGHT;
+		}
+		else if ((pieces[BISHOP] >> i) & 1UL)
+		{
+			indexBoard[i] = BISHOP;
+		}
+		else if ((pieces[ROOK] >> i) & 1UL)
+		{
+			indexBoard[i] = ROOK;
+		}
+		else if ((pieces[QUEEN] >> i) & 1UL)
+		{
+			indexBoard[i] = QUEEN;
+		}
+		else if ((pieces[KING] >> i) & 1UL)
+		{
+			indexBoard[i] = KING;
+		}
+	}
 }
 
 std::ostream& operator<<(std::ostream& out, const Board& board)
@@ -237,18 +264,18 @@ std::ostream& operator<<(std::ostream& out, const Board& board)
     std::vector<std::string> visualBoard(64, "  ");
     std::array<u64, 12> pieces =
     {
-        board.pawns & board.pieces[WHITE],
-        board.knights & board.pieces[WHITE],
-        board.bishops & board.pieces[WHITE],
-        board.rooks & board.pieces[WHITE],
-        board.queens & board.pieces[WHITE],
-        board.kings & board.pieces[WHITE],
-        board.pawns & (board.pieces[BLACK]),
-        board.knights & (board.pieces[BLACK]),
-        board.bishops & (board.pieces[BLACK]),
-        board.rooks & (board.pieces[BLACK]),
-        board.queens & (board.pieces[BLACK]),
-        board.kings & (board.pieces[BLACK]),
+        board.pieces[PAWN] & board.pieces[WHITE],
+        board.pieces[KNIGHT] & board.pieces[WHITE],
+        board.pieces[BISHOP] & board.pieces[WHITE],
+        board.pieces[ROOK] & board.pieces[WHITE],
+        board.pieces[QUEEN] & board.pieces[WHITE],
+        board.pieces[KING] & board.pieces[WHITE],
+        board.pieces[PAWN] & (board.pieces[BLACK]),
+        board.pieces[KNIGHT] & (board.pieces[BLACK]),
+        board.pieces[BISHOP] & (board.pieces[BLACK]),
+        board.pieces[ROOK] & (board.pieces[BLACK]),
+        board.pieces[QUEEN] & (board.pieces[BLACK]),
+        board.pieces[KING] & (board.pieces[BLACK]),
     };
     std::map<int, std::string> pieceSymbols =
     {

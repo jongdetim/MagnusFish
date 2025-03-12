@@ -1,5 +1,10 @@
 #include "Board.hpp"
 
+static bool	isOnOuterFile(int square)
+{
+	return (((1UL << square) & A_FILE) != 0 || ((1UL << square) & H_FILE) != 0);
+}
+
 static int	getEasternBit(u64 bitboard)
 {
 	int res = 0;
@@ -52,9 +57,56 @@ static int	getSouthernBit(u64 bitboard)
 	return (0);
 }
 
-void	Board::makeMove(Move move)
+void	Board::searchDiagonally(int direction, int square, u64& moveOptions)
 {
-	(void)move;
+	while (true)
+	{
+		if (isOnOuterFile(square) == true)
+		{
+			square += direction;
+			if (isOnOuterFile(square) == true)
+			{
+				break;
+			}
+		}
+		else
+		{
+			square += direction;
+		}
+		if (square < 0 || square > 63 || ((pieces[sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+		moveOptions |= 1UL << square;
+		if (((pieces[!sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+	}
+}
+
+void	Board::searchOrthogonally(int direction, int square, u64& moveOptions)
+{
+	int test;
+
+	while (square >= 0 && square < 64)
+	{
+		test = square % 8 + direction % 8;
+		if (test < 0 || test > 7)
+		{
+			break;
+		}
+		square += direction;
+		if (((pieces[sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+		moveOptions |= 1UL << square;
+		if (((pieces[!sideToMove] >> square) & 1UL) == 1)
+		{
+			break;
+		}
+	}
 }
 
 bool	Board::orthogonallyInCheck(int king)
@@ -63,14 +115,14 @@ bool	Board::orthogonallyInCheck(int king)
 	int	square;
 
 	/*	Search north	*/
-	searchOrthogonalDirection(NORTH, king, orthogonalReach);
+	searchOrthogonally(NORTH, king, orthogonalReach);
 	square = getNorthernBit(orthogonalReach);
-	getPieceIndexes(rooks & pieces[!sideToMove]);
+	getPieceIndexes(pieces[ROOK] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -78,14 +130,14 @@ bool	Board::orthogonallyInCheck(int king)
 	orthogonalReach = 0;
 
 	/*	Search south	*/
-	searchOrthogonalDirection(SOUTH, king, orthogonalReach);
+	searchOrthogonally(SOUTH, king, orthogonalReach);
 	square = getSouthernBit(orthogonalReach);
-	getPieceIndexes(rooks & pieces[!sideToMove]);
+	getPieceIndexes(pieces[ROOK] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -93,14 +145,14 @@ bool	Board::orthogonallyInCheck(int king)
 	orthogonalReach = 0;
 
 	/*	Search east	*/
-	searchOrthogonalDirection(EAST, king, orthogonalReach);
+	searchOrthogonally(EAST, king, orthogonalReach);
 	square = getEasternBit(orthogonalReach);
-	getPieceIndexes(rooks & pieces[!sideToMove]);
+	getPieceIndexes(pieces[ROOK] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -108,14 +160,14 @@ bool	Board::orthogonallyInCheck(int king)
 	orthogonalReach = 0;
 
 	/*	Search west	*/
-	searchOrthogonalDirection(WEST, king, orthogonalReach);
+	searchOrthogonally(WEST, king, orthogonalReach);
 	square = getWesternBit(orthogonalReach);
-	getPieceIndexes(rooks & pieces[!sideToMove]);
+	getPieceIndexes(pieces[ROOK] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -130,14 +182,14 @@ bool	Board::diagonallyInCheck(int king)
 
 	/*	Search northwest	*/
 
-	searchDiagonalDirection(NORTHWEST, king, diagonalReach);
+	searchDiagonally(NORTHWEST, king, diagonalReach);
 	square = getNorthernBit(diagonalReach);
-	getPieceIndexes(bishops & pieces[!sideToMove]);
+	getPieceIndexes(pieces[BISHOP] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -145,14 +197,14 @@ bool	Board::diagonallyInCheck(int king)
 	diagonalReach = 0;
 
 	/*	Search northeast	*/	
-	searchDiagonalDirection(NORTHEAST, king, diagonalReach);
+	searchDiagonally(NORTHEAST, king, diagonalReach);
 	square = getEasternBit(diagonalReach);
-	getPieceIndexes(bishops & pieces[!sideToMove]);
+	getPieceIndexes(pieces[BISHOP] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -160,14 +212,14 @@ bool	Board::diagonallyInCheck(int king)
 	diagonalReach = 0;
 
 	/*	Search southwest	*/
-	searchDiagonalDirection(SOUTHWEST, king, diagonalReach);
+	searchDiagonally(SOUTHWEST, king, diagonalReach);
 	square = getWesternBit(diagonalReach);
-	getPieceIndexes(bishops & pieces[!sideToMove]);
+	getPieceIndexes(pieces[BISHOP] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -175,14 +227,14 @@ bool	Board::diagonallyInCheck(int king)
 	diagonalReach = 0;
 
 	/*	Search southeast	*/
-	searchDiagonalDirection(SOUTHEAST, king, diagonalReach);
+	searchDiagonally(SOUTHEAST, king, diagonalReach);
 	square = getSouthernBit(diagonalReach);
-	getPieceIndexes(bishops & pieces[!sideToMove]);
+	getPieceIndexes(pieces[BISHOP] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
 	}
-	getPieceIndexes(queens & pieces[!sideToMove]);
+	getPieceIndexes(pieces[QUEEN] & pieces[!sideToMove]);
 	if (compareSquares(square) == true)
 	{
 		return (true);
@@ -192,7 +244,7 @@ bool	Board::diagonallyInCheck(int king)
 
 bool	Board::inKnightCheck(int king)
 {
-	getPieceIndexes(knights & pieces[!sideToMove]);
+	getPieceIndexes(pieces[KNIGHT] & pieces[!sideToMove]);
 	for (int moves = 0; moves < 8; moves++)
 	{
 		if (compareSquares(king - knightMoves[moves]) == true)
@@ -205,7 +257,7 @@ bool	Board::inKnightCheck(int king)
 
 bool	Board::inPawnCheck(int kingIndex)
 {
-	getPieceIndexes(pawns & pieces[!sideToMove]);
+	getPieceIndexes(pieces[PAWN] & pieces[!sideToMove]);
 	if (sideToMove == WHITE)
 	{
 		if (compareSquares(kingIndex + NORTHWEST) == true || compareSquares(kingIndex + NORTHEAST) == true)

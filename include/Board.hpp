@@ -12,13 +12,6 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint64_t u64;
 
-enum colors
-{
-	WHITE,
-	BLACK,
-	ALL
-};
-
 enum castlingRights
 {
 	whiteKingSide = 1,
@@ -29,13 +22,16 @@ enum castlingRights
 
 enum pieces
 {
+	WHITE,
+	BLACK,
+	ALL,
 	PAWN,
 	KNIGHT,
 	BISHOP,
 	ROOK,
 	QUEEN,
 	KING,
-	NONE
+	NONE,
 };
 
 enum directions
@@ -118,14 +114,14 @@ class Board
 	Board&	operator=(const Board& other);
 
 	void	reset();
+	void	parseFen(const char* fen);
 
 	/*	Helpers for searching	*/
 
 	void	getPieceIndexes(u64 bitboard);
-	char	getPiece(int square);
 	bool	compareSquares(int square);
-	void	searchOrthogonalDirection(int direction, int square, u64& moves);
-	void	searchDiagonalDirection(int direction, int square, u64& moveOptions);
+	void	searchOrthogonalDirection(int direction, int square);
+	void	searchDiagonalDirection(int direction, int square);
 
 	/*	Move generators	*/
 
@@ -146,11 +142,18 @@ class Board
 	bool	orthogonallyInCheck(int king);
 	bool	diagonallyInCheck(int king);
 	bool	inPawnCheck(int kingIndex);
-	void	makeMove(Move move);
+	void	searchDiagonally(int direction, int square, u64& moveOptions);
+	void	searchOrthogonally(int direction, int square, u64& moveOptions);
+
+	/*	Executing moves	*/
+
+	void	verifyAndAddMove(const Move& move);
+	void	makeMove(const Move& move);
+	void	undoMove(const Move& move);
 
 	/*	Miscellaneous states	*/
 
-	bool	sideToMove;
+	int		sideToMove;
 	bool	kingIsChecked;
 	int		enPassentSquare;
 	int		castlingRights;
@@ -159,18 +162,11 @@ class Board
 
 	/*	Bitboards of pieces	*/
 
-	u64		pawns;
-	u64		knights;
-	u64		bishops;
-	u64		rooks;
-	u64		queens;
-	u64		kings;
-	u64		pieces[3];
+	u64		pieces[9];
 
-	std::vector<std::pair<int, u64>>	moves;
-
-	void	parseFen(const char* fen);
+	std::vector<Move>	moveList;
 	std::array<int, 10> pieceSQs;
+	std::array<int, 64> indexBoard;
 };
 
 std::ostream&	operator<<(std::ostream& out, const Board& board);

@@ -1,4 +1,3 @@
-#include "MagnusFish.hpp"
 #include "Board.hpp"
 
 void	run()

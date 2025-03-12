@@ -9,37 +9,37 @@ static bool	isOnOuterFile(int square)
 	return (((1UL << square) & A_FILE) != 0 || ((1UL << square) & H_FILE) != 0);
 }
 
-void	Board::searchDiagonalDirection(int direction, int square, u64& moveOptions)
+void	Board::searchDiagonalDirection(int direction, int square)
 {
+	Move	move(square);
+
 	while (true)
 	{
-		if (isOnOuterFile(square) == true)
+		if (isOnOuterFile(square) == true && isOnOuterFile(square + direction) == true)
 		{
-			square += direction;
-			if (isOnOuterFile(square) == true)
-			{
-				break;
-			}
+			break;
 		}
-		else
-		{
-			square += direction;
-		}
+		square += direction;
 		if (square < 0 || square > 63 || ((pieces[sideToMove] >> square) & 1UL) == 1)
 		{
 			break;
 		}
-		moveOptions |= 1UL << square;
+		move.newSquare = square;
 		if (((pieces[!sideToMove] >> square) & 1UL) == 1)
 		{
+			move.capturedPiece = indexBoard[square];
+			verifyAndAddMove(move);
 			break;
 		}
+		verifyAndAddMove(move);
+		move.reset();
 	}
 }
 
-void	Board::searchOrthogonalDirection(int direction, int square, u64& moveOptions)
+void	Board::searchOrthogonalDirection(int direction, int square)
 {
-	int test;
+	int 	test;
+	Move	move(square);
 
 	while (square >= 0 && square < 64)
 	{
@@ -53,11 +53,15 @@ void	Board::searchOrthogonalDirection(int direction, int square, u64& moveOption
 		{
 			break;
 		}
-		moveOptions |= 1UL << square;
+		move.newSquare = square;
 		if (((pieces[!sideToMove] >> square) & 1UL) == 1)
 		{
+			move.capturedPiece = indexBoard[square];
+			verifyAndAddMove(move);
 			break;
 		}
+		verifyAndAddMove(move);
+		move.reset();
 	}
 }
 
@@ -74,195 +78,227 @@ void	Board::generateKingMoves()
 		SOUTH,
 		SOUTHEAST
 	};
+	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 
-	int kingIndex = 0;
-	u64	king = kings & pieces[sideToMove];
-
-	for (int i = 0; i < 64; i++)
-	{
-		if (((king >> i) & 1UL) == 1)
-		{
-			kingIndex = i;
-			break;
-		}
-	}
-	u64 moveOptions = 0;
+	Move	move(pieceSQs[0]);
+	int		test, square;
+	
 	for (int i = 0; i < 8; i++)
 	{
-		int test = kingIndex % 8 + kingMoves[i] % 8;
+		test = move.startingSquare % 8 + kingMoves[i] % 8;
 		if (test < 0 || test > 7)
 		{
 			continue;
 		}
-		int square = kingIndex + kingMoves[i];
+		square = move.startingSquare + kingMoves[i];
 		if (square >= 0 && square < 64 && ((pieces[sideToMove] >> square) & 1UL) == 0)
 		{
-			moveOptions |= 1UL << square;
+			if (((pieces[!sideToMove] >> square) & 1UL) == 1)
+			{
+				move.capturedPiece = indexBoard[square];
+			}
+			move.newSquare = square;
+			verifyAndAddMove(move);
+			move.reset();
 		}
 	}
-	moves.push_back({kingIndex, moveOptions});
 }
 
 void	Board::generateWhitePawnMoves()
 {
-	int index = 0;
-	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
-	{
-		u64 moveOptions = 0;
-		int square = pieceSQs[index] + NORTH;
+	Move	move(0);
 
-		if (((pieces[ALL] >> square) & 1UL) == 0)
+	getPieceIndexes(pieces[PAWN] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	{
+		move.startingSquare = pieceSQs[index];
+		move.newSquare = move.startingSquare + NORTH;
+
+		if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
 		{
-			moveOptions |= 1UL << square;
-		}
-		square += NORTH;
-		if ((pieceSQs[index] & ROW_1) != 0 && ((pieces[ALL] >> square) & 1UL) == 0)
-		{
-			moveOptions |= 1UL << square;
-		}
-		if ((pieceSQs[index] & A_FILE) != 0)
-		{
-			square = pieceSQs[index] + NORTHWEST;
-			if (((pieces[BLACK] >> square) & 1UL) == 1)
+			if ((move.newSquare & ROW_8) != 0)
 			{
-				moveOptions |= 1UL << square;
+				move.promotesTo = QUEEN;
+				verifyAndAddMove(move);
+				move.promotesTo = ROOK;
+				verifyAndAddMove(move);
+				move.promotesTo = BISHOP;
+				verifyAndAddMove(move);
+				move.promotesTo = KNIGHT;
+			}
+			verifyAndAddMove(move);
+		}
+		if ((move.startingSquare & ROW_2) != 0 && ((pieces[ALL] >> (move.newSquare + NORTH)) & 1UL) == 0)
+		{
+			move.newSquare += NORTH;
+			verifyAndAddMove(move);
+		}
+		if ((move.startingSquare & A_FILE) == 0)
+		{
+			move.newSquare = move.startingSquare + NORTHWEST;
+			if (move.newSquare == enPassentSquare)
+			{
+				move.capturedPiece = PAWN;
+				verifyAndAddMove(move);
+			}
+			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
+			{
+				move.capturedPiece = indexBoard[move.newSquare];
+				verifyAndAddMove(move);
 			}
 		}
-		if ((pieceSQs[index] & H_FILE) != 0)
+		if ((pieceSQs[index] & H_FILE) == 0)
 		{
-			square = pieceSQs[index] + NORTHEAST;
-			if (((pieces[BLACK] >> square) & 1UL) == 1 || square == enPassentSquare)
+			move.newSquare = move.startingSquare + NORTHEAST;
+			if (move.newSquare == enPassentSquare)
 			{
-				moveOptions |= 1UL << square;
+				move.capturedPiece = PAWN;
+				verifyAndAddMove(move);
+			}
+			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
+			{
+				move.capturedPiece = indexBoard[move.newSquare];
+				verifyAndAddMove(move);
 			}
 		}
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
 	}
 }
 
 void	Board::generateBlackPawnMoves()
 {
-	int index = 0;
-	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
-	{
-		u64 moveOptions = 0;
-		int square = pieceSQs[index] + SOUTH;
+	Move	move(0);
 
-		if (((pieces[WHITE] >> square) & 1UL) == 0 && ((pieces[BLACK] >> square) & 1UL) == 0)
+	getPieceIndexes(pieces[PAWN] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	{
+		move.startingSquare = pieceSQs[index];
+		move.newSquare = move.startingSquare + SOUTH;
+
+		if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
 		{
-			moveOptions |= 1UL << square;
-		}
-		square += SOUTH;
-		if (pieceSQs[index] <= blackPawnH7 && 
-			(((pieces[WHITE] >> square) & 1UL) == 0 && \
-			((pieces[BLACK] >> square) & 1UL) == 0))
-		{
-			moveOptions |= 1UL << square;
-		}
-		if ((pieceSQs[index] & A_FILE) != 0)
-		{
-			square = pieceSQs[index] + SOUTHWEST;
-			if (((pieces[WHITE] >> square) & 1UL) == 1)
+			if ((move.newSquare & ROW_1) != 0)
 			{
-				moveOptions |= 1UL << square;
+				move.promotesTo = QUEEN;
+				verifyAndAddMove(move);
+				move.promotesTo = ROOK;
+				verifyAndAddMove(move);
+				move.promotesTo = BISHOP;
+				verifyAndAddMove(move);
+				move.promotesTo = KNIGHT;
+			}
+			verifyAndAddMove(move);
+		}
+		if ((move.startingSquare & ROW_7) != 0 && ((pieces[ALL] >> (move.newSquare + SOUTH)) & 1UL) == 0)
+		{
+			move.newSquare += SOUTH;
+			verifyAndAddMove(move);
+		}
+		if ((move.startingSquare & A_FILE) == 0)
+		{
+			move.newSquare = move.startingSquare + SOUTHWEST;
+			if (move.newSquare == enPassentSquare)
+			{
+				move.capturedPiece = PAWN;
+				verifyAndAddMove(move);
+			}
+			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
+			{
+				move.capturedPiece = indexBoard[move.newSquare];
+				verifyAndAddMove(move);
 			}
 		}
-		if ((pieceSQs[index] & H_FILE) != 0)
+		if ((pieceSQs[index] & H_FILE) == 0)
 		{
-			square = pieceSQs[index] + SOUTHEAST;
-			if (((pieces[WHITE] >> square) & 1UL) == 1 || square == enPassentSquare)
+			move.newSquare = move.startingSquare + SOUTHEAST;
+			if (move.newSquare == enPassentSquare)
 			{
-				moveOptions |= 1UL << square;
+				move.capturedPiece = PAWN;
+				verifyAndAddMove(move);
+			}
+			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
+			{
+				move.capturedPiece = indexBoard[move.newSquare];
+				verifyAndAddMove(move);
 			}
 		}
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
 	}
 }
 
 void	Board::generateKnightMoves()
 {
-	int index = 0;
-	getPieceIndexes(knights & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
+	int square, test;
+	Move move(0);
+
+	getPieceIndexes(pieces[KNIGHT] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
 	{
-		u64 moveOptions = 0;
+		move.startingSquare = pieceSQs[index];
 		for (int i = 0; i < 8; i++)
 		{
-			int test = pieceSQs[index] % 8 + knightMoves[i] % 8;
+			test = pieceSQs[index] % 8 + knightMoves[i] % 8;
 			if (test < 0 || test > 7)
 			{
 				continue;
 			}
-			int square = pieceSQs[index] + knightMoves[i];
+			square = pieceSQs[index] + knightMoves[i];
 			if (square >= 0 && square < 64 && ((pieces[sideToMove] >> square) & 1UL) == 0)
 			{
-				moveOptions |= 1UL << square;
+				move.newSquare = square;
+				if (((pieces[!sideToMove] >> square) & 1UL) == 1)
+				{
+					move.capturedPiece = indexBoard[square];
+				}
+				verifyAndAddMove(move);
+				move.reset();
 			}
 		}
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
+		move.reset();
 	}
 }
 
 void	Board::generateQueenMoves()
 {
-	int index = 0;
-	getPieceIndexes(queens & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
+	getPieceIndexes(pieces[QUEEN] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
 	{
-		u64 moveOptions = 0;
-		searchDiagonalDirection(NORTHWEST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(NORTHEAST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(SOUTHWEST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(SOUTHEAST, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(WEST, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(EAST, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(NORTH, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(SOUTH, pieceSQs[index], moveOptions);
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
+		searchDiagonalDirection(NORTHWEST, pieceSQs[index]);
+		searchDiagonalDirection(NORTHEAST, pieceSQs[index]);
+		searchDiagonalDirection(SOUTHWEST, pieceSQs[index]);
+		searchDiagonalDirection(SOUTHEAST, pieceSQs[index]);
+		searchOrthogonalDirection(WEST, pieceSQs[index]);
+		searchOrthogonalDirection(EAST, pieceSQs[index]);
+		searchOrthogonalDirection(NORTH, pieceSQs[index]);
+		searchOrthogonalDirection(SOUTH, pieceSQs[index]);
 	}
 }
 
 void	Board::generateBishopMoves()
 {
-	int index = 0;
-	getPieceIndexes(bishops & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
+	getPieceIndexes(pieces[BISHOP] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
 	{
-		u64 moveOptions = 0;
-		searchDiagonalDirection(NORTHWEST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(NORTHEAST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(SOUTHWEST, pieceSQs[index], moveOptions);
-		searchDiagonalDirection(SOUTHEAST, pieceSQs[index], moveOptions);
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
+		searchDiagonalDirection(NORTHWEST, pieceSQs[index]);
+		searchDiagonalDirection(NORTHEAST, pieceSQs[index]);
+		searchDiagonalDirection(SOUTHWEST, pieceSQs[index]);
+		searchDiagonalDirection(SOUTHEAST, pieceSQs[index]);
 	}
 }
 
 void	Board::generateRookMoves()
 {
-	int index = 0;
-	getPieceIndexes(rooks & pieces[sideToMove]);
-	while (pieceSQs[index] != 0 && index < 10)
+	getPieceIndexes(pieces[ROOK] & pieces[sideToMove]);
+	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
 	{
-		u64 moveOptions = 0;
-		searchOrthogonalDirection(WEST, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(EAST, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(NORTH, pieceSQs[index], moveOptions);
-		searchOrthogonalDirection(SOUTH, pieceSQs[index], moveOptions);
-		moves.push_back({pieceSQs[index], moveOptions});
-		index++;
+		searchOrthogonalDirection(WEST, pieceSQs[index]);
+		searchOrthogonalDirection(EAST, pieceSQs[index]);
+		searchOrthogonalDirection(NORTH, pieceSQs[index]);
+		searchOrthogonalDirection(SOUTH, pieceSQs[index]);
 	}
 }
 
 void	Board::generateCastlingMoves()
 {
-	u64	allPieces = pieces[WHITE] | pieces[BLACK];
+	Move	move(-1);
 
 	if (sideToMove == WHITE)
 	{
@@ -270,9 +306,10 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(F1) == false && inCheck(G1) == false)
 			{
-				if (((allPieces >> F1) & 1UL) == 0 && ((allPieces >> G1) & 1UL) == 0)
+				if (((pieces[ALL] >> F1) & 1UL) == 0 && ((pieces[ALL] >> G1) & 1UL) == 0)
 				{
-					castlingRights ^= whiteKingSide;
+					move.castle = whiteKingSide;
+					moveList.push_back(move);
 				}
 			}
 		}
@@ -280,9 +317,10 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(D1) == false && inCheck(C1) == false)
 			{
-				if (((allPieces >> D1) & 1UL) == 0 && ((allPieces >> C1) & 1UL) == 0)
+				if (((pieces[ALL] >> D1) & 1UL) == 0 && ((pieces[ALL] >> C1) & 1UL) == 0)
 				{
-					castlingRights ^= whiteQueenSide;
+					move.castle = whiteQueenSide;
+					moveList.push_back(move);
 				}
 			}
 		}
@@ -293,9 +331,10 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(F8) == false && inCheck(G8) == false)
 			{
-				if (((allPieces >> F8) & 1UL) == 0 && ((allPieces >> G8) & 1UL) == 0)
+				if (((pieces[ALL] >> F8) & 1UL) == 0 && ((pieces[ALL] >> G8) & 1UL) == 0)
 				{
-					castlingRights ^= blackKingSide;
+					move.castle = blackKingSide;
+					moveList.push_back(move);
 				}
 			}
 		}
@@ -303,9 +342,10 @@ void	Board::generateCastlingMoves()
 		{
 			if (inCheck(D8) == false && inCheck(C8) == false)
 			{
-				if (((allPieces >> D8) & 1UL) == 0 && ((allPieces >> C8) & 1UL) == 0)
+				if (((pieces[ALL] >> D8) & 1UL) == 0 && ((pieces[ALL] >> C8) & 1UL) == 0)
 				{
-					castlingRights ^= blackQueenSide;
+					move.castle = blackQueenSide;
+					moveList.push_back(move);
 				}
 			}
 		}
@@ -315,6 +355,9 @@ void	Board::generateCastlingMoves()
 
 void	Board::generateMoves()
 {
+	getPieceIndexes(pieces[sideToMove]);
+	bool kingIsChecked = inCheck(pieceSQs[0]);
+
 	generateRookMoves();
 	generateBishopMoves();
 	generateKnightMoves();
@@ -328,10 +371,8 @@ void	Board::generateMoves()
 	{
 		generateBlackPawnMoves();
 	}
-	generateCastlingMoves();
-	for (const std::pair<int, u64>& move : moves)
+	if (kingIsChecked == false)
 	{
-		std::cout << "Piece: " << getPiece(move.first) << std::endl;
-		printBitboard(move.second);
+		generateCastlingMoves();
 	}
 }

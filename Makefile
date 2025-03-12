@@ -2,7 +2,8 @@ NAME		=	chessbot
 TEST		=	tester
 RM			=	rm -rf
 CC			=	c++
-CPPFLAGS	=	-Wall  -Wextra -std=c++20 -g #-Werror
+CPPFLAGS	=	-Wall -Wextra -std=c++20 -O3 -flto -march=native -mtune=native \
+				-funroll-loops -fomit-frame-pointer -fno-exceptions -fno-rtti #-g #-Werror
 HEADERS		=	-I include
 SRCDIR		=	src
 OBJDIR		=	objs
@@ -13,8 +14,8 @@ SRCS		=	Board.cpp \
 				BoardExecute.cpp \
 				BoardGenerateMoves.cpp \
 				inputLoop.cpp \
+				Move.cpp \
 				search.cpp \
-				utils.cpp \
 
 MAIN		=	main.cpp
 TESTMAIN	=	tests.cpp
