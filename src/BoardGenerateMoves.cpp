@@ -41,7 +41,7 @@ void	Board::searchOrthogonalDirection(int direction, int square)
 	int 	test;
 	Move	move(square);
 
-	while (square >= 0 && square < 64)
+	while (true)
 	{
 		test = square % 8 + direction % 8;
 		if (test < 0 || test > 7)
@@ -49,7 +49,7 @@ void	Board::searchOrthogonalDirection(int direction, int square)
 			break;
 		}
 		square += direction;
-		if (((pieces[sideToMove] >> square) & 1UL) == 1)
+		if (square < 0 || square > 63 || ((pieces[sideToMove] >> square) & 1UL) == 1)
 		{
 			break;
 		}
@@ -80,6 +80,10 @@ void	Board::generateKingMoves()
 	};
 	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 
+	if (pieceSQs[0] == 0)
+	{
+		return;
+	}
 	Move	move(pieceSQs[0]);
 	int		test, square;
 	
@@ -128,10 +132,13 @@ void	Board::generateWhitePawnMoves()
 			}
 			verifyAndAddMove(move);
 		}
-		if ((move.startingSquare & ROW_2) != 0 && ((pieces[ALL] >> (move.newSquare + NORTH)) & 1UL) == 0)
+		if ((move.startingSquare & ROW_2) != 0)
 		{
 			move.newSquare += NORTH;
-			verifyAndAddMove(move);
+			if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
+			{
+				verifyAndAddMove(move);
+			}
 		}
 		if ((move.startingSquare & A_FILE) == 0)
 		{
@@ -147,7 +154,7 @@ void	Board::generateWhitePawnMoves()
 				verifyAndAddMove(move);
 			}
 		}
-		if ((pieceSQs[index] & H_FILE) == 0)
+		if ((move.startingSquare & H_FILE) == 0)
 		{
 			move.newSquare = move.startingSquare + NORTHEAST;
 			if (move.newSquare == enPassentSquare)
@@ -226,7 +233,8 @@ void	Board::generateBlackPawnMoves()
 
 void	Board::generateKnightMoves()
 {
-	int square, test;
+	int square;
+	int horizontalDir, verticalDir;
 	Move move(0);
 
 	getPieceIndexes(pieces[KNIGHT] & pieces[sideToMove]);
@@ -235,12 +243,17 @@ void	Board::generateKnightMoves()
 		move.startingSquare = pieceSQs[index];
 		for (int i = 0; i < 8; i++)
 		{
-			test = pieceSQs[index] % 8 + knightMoves[i] % 8;
-			if (test < 0 || test > 7)
+			square = move.startingSquare + knightMoves[i];
+			horizontalDir = knightMoves[i] % 8;
+			verticalDir = knightMoves[i] / 8;
+			if (move.startingSquare % 8 + horizontalDir < 0 || move.startingSquare % 8 + horizontalDir > 7)
 			{
 				continue;
 			}
-			square = pieceSQs[index] + knightMoves[i];
+			if (move.startingSquare / 8 + verticalDir < 0 || move.startingSquare / 8 + verticalDir > 7)
+			{
+				continue;
+			}
 			if (square >= 0 && square < 64 && ((pieces[sideToMove] >> square) & 1UL) == 0)
 			{
 				move.newSquare = square;
@@ -302,6 +315,10 @@ void	Board::generateCastlingMoves()
 
 	if (sideToMove == WHITE)
 	{
+		if ((((pieces[KING] & pieces[WHITE]) >> E1) & 1UL) == 0)
+		{
+			return;
+		}
 		if ((castlingRights & whiteKingSide) != 0)
 		{
 			if (inCheck(F1) == false && inCheck(G1) == false)
@@ -327,6 +344,10 @@ void	Board::generateCastlingMoves()
 	}
 	else
 	{
+		if ((((pieces[KING] & pieces[BLACK]) >> E8) & 1UL) == 0)
+		{
+			return;
+		}
 		if ((castlingRights & blackKingSide) != 0)
 		{
 			if (inCheck(F8) == false && inCheck(G8) == false)
@@ -352,17 +373,25 @@ void	Board::generateCastlingMoves()
 	}
 }
 
+#include <chrono>
 
 void	Board::generateMoves()
 {
-	getPieceIndexes(pieces[sideToMove]);
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 	bool kingIsChecked = inCheck(pieceSQs[0]);
 
+	std::cout << "Generated moves (none): " << moveList.size() << std::endl;
 	generateRookMoves();
+	std::cout << "Generated moves (rooks): " << moveList.size() << std::endl;
 	generateBishopMoves();
+	std::cout << "Generated moves: (bishops)" << moveList.size() << std::endl;
 	generateKnightMoves();
+	std::cout << "Generated moves: (knights)" << moveList.size() << std::endl;
 	generateQueenMoves();
+	std::cout << "Generated moves: (queens)" << moveList.size() << std::endl;
 	generateKingMoves();
+	std::cout << "Generated moves: (king)" << moveList.size() << std::endl;
 	if (sideToMove == WHITE)
 	{
 		generateWhitePawnMoves();
@@ -371,8 +400,12 @@ void	Board::generateMoves()
 	{
 		generateBlackPawnMoves();
 	}
+	std::cout << "Generated moves: (pawns)" << moveList.size() << std::endl;
 	if (kingIsChecked == false)
 	{
 		generateCastlingMoves();
 	}
+	std::cout << "Generated moves: (castling)" << moveList.size() << std::endl;
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::cout << "Took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "us" << std::endl;
 }

@@ -68,14 +68,14 @@ enum files
 
 enum rows
 {
-	ROW_1 = 0xFF,
-	ROW_2 = 0xFF00,
-	ROW_3 = 0xFF0000,
-	ROW_4 = 0xFF000000,
-	ROW_5 = 0xFF00000000,
-	ROW_6 = 0xFF0000000000,
-	ROW_7 = 0xFF000000000000,
-	ROW_8 = 0xFF00000000000000
+	ROW_1 = 0xFF00000000000000,
+	ROW_2 = 0x00FF000000000000,
+	ROW_3 = 0x0000FF0000000000,
+	ROW_4 = 0x000000FF00000000,
+	ROW_5 = 0x00000000FF000000,
+	ROW_6 = 0x0000000000FF0000,
+	ROW_7 = 0x000000000000FF00,
+	ROW_8 = 0x00000000000000FF
 };
 
 enum squares
@@ -150,6 +150,8 @@ class Board
 	void	verifyAndAddMove(const Move& move);
 	void	makeMove(const Move& move);
 	void	undoMove(const Move& move);
+	void	castle(int castleDirection);
+	void	uncastle(int castleDirection);
 
 	/*	Miscellaneous states	*/
 
@@ -162,8 +164,7 @@ class Board
 
 	/*	Bitboards of pieces	*/
 
-	u64		pieces[9];
-
+	std::array<u64, 9>	pieces;
 	std::vector<Move>	moveList;
 	std::array<int, 10> pieceSQs;
 	std::array<int, 64> indexBoard;

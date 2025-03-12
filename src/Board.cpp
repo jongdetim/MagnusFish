@@ -67,6 +67,7 @@ Board&	Board::operator=(const Board& other)
 		this->kingIsChecked = other.kingIsChecked;
 		this->halfMoveClock = other.halfMoveClock;
 		this->fullMoveCount = other.fullMoveCount;
+		this->moveList = other.moveList;
 	}
 	return (*this);
 }
@@ -88,6 +89,7 @@ void	Board::reset()
 	kingIsChecked = false;
 	halfMoveClock = 0;
 	fullMoveCount = 0;
+	moveList.clear();
 }
 
 void	Board::parseFen(const char* fen)
