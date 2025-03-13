@@ -111,6 +111,7 @@ void	Board::makeMove(const Move& move)
 	if (move.castle != 0)
 	{
 		castle(move.castle);
+		return ;
 	}
 	indexBoard[move.newSquare] = indexBoard[move.startingSquare];
 	indexBoard[move.startingSquare] = NONE;
@@ -135,38 +136,19 @@ void	Board::makeMove(const Move& move)
 	}
 }
 
-void	Board::undoMove(const Move& move)
+void	Board::undoMove()
 {
-	sideToMove = !sideToMove;
-	if (move.castle != 0)
-	{
-		uncastle(move.castle);
-	}
-	indexBoard[move.startingSquare] = indexBoard[move.newSquare];
-	indexBoard[move.newSquare] = NONE;
-	for (int i = 0; i < 9; i++)
-	{
-		if (((pieces[i] >> move.newSquare) & 1UL) == 1)
-		{
-			pieces[i] ^= 1UL << move.newSquare;
-			pieces[i] |= 1UL << move.startingSquare;
-		}
-	}
-	if (move.capturedPiece != NONE)
-	{
-		pieces[!sideToMove] |= 1UL << move.newSquare;
-		pieces[move.capturedPiece] |= 1UL << move.newSquare;
-	}
-	if (sideToMove == WHITE)
-	{
-		fullMoveCount--;
-	}
+	pieces = position.pieces;
+	indexBoard = position.indexBoard;
+	sideToMove = position.sideToMove;
+	enPassentSquare = position.enPassentSquare;
+	castlingRights = position.castlingRights;
+	halfMoveClock = position.halfMoveClock;
+	fullMoveCount = position.fullMoveCount;
 }
 
 void	Board::verifyAndAddMove(const Move& move)
 {
-	int	halfMoves = halfMoveClock;
-
 	makeMove(move);
 	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 	if (inCheck(pieceSQs[0]) == false)
@@ -175,9 +157,5 @@ void	Board::verifyAndAddMove(const Move& move)
 		std::cout << "From square: " << move.startingSquare << " To square: " << move.newSquare << std::endl;
 		std::cout << "Captured piece: " << move.capturedPiece << std::endl;
 	}
-	else
-	{
-		halfMoveClock = halfMoves;
-	}
-	undoMove(move);
+	undoMove();
 }

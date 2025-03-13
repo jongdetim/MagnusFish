@@ -9,6 +9,18 @@ static bool	isOnOuterFile(int square)
 	return (((1UL << square) & A_FILE) != 0 || ((1UL << square) & H_FILE) != 0);
 }
 
+void	Board::promote(Move& move)
+{
+	move.promotesTo = QUEEN;
+	verifyAndAddMove(move);
+	move.promotesTo = ROOK;
+	verifyAndAddMove(move);
+	move.promotesTo = BISHOP;
+	verifyAndAddMove(move);
+	move.promotesTo = KNIGHT;
+	verifyAndAddMove(move);
+}
+
 void	Board::searchDiagonalDirection(int direction, int square)
 {
 	Move	move(square);
@@ -80,7 +92,7 @@ void	Board::generateKingMoves()
 	};
 	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 
-	if (pieceSQs[0] == 0)
+	if (pieceSQs[0] == -1)
 	{
 		return;
 	}
@@ -108,31 +120,57 @@ void	Board::generateKingMoves()
 	}
 }
 
+void	Board::pawnCapture(Move& move, int direction)
+{
+	constexpr std::array<u64, 2> promotionRanks = {ROW_8, ROW_1};
+
+	move.newSquare = move.startingSquare + direction;
+	if (move.newSquare == enPassentSquare)
+	{
+		move.capturedPiece = PAWN;
+		verifyAndAddMove(move);
+		return ;
+	}
+	if (((pieces[!sideToMove] >> move.newSquare) & 1UL) == 1)
+	{
+		move.capturedPiece = indexBoard[move.newSquare];
+		if (((1UL << move.newSquare) & promotionRanks[sideToMove]) != 0)
+		{
+			promote(move);
+		}
+		else
+		{
+			verifyAndAddMove(move);
+		}
+	}
+}
+
 void	Board::generateWhitePawnMoves()
 {
 	Move	move(0);
 
 	getPieceIndexes(pieces[PAWN] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
+		for (int i = 0; i < 10; i++)
+		{
+			std::cout << pieceSQs[i] << std::endl;
+		}
 		move.startingSquare = pieceSQs[index];
 		move.newSquare = move.startingSquare + NORTH;
 
 		if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
 		{
-			if ((move.newSquare & ROW_8) != 0)
+			if (((1UL << move.newSquare) & ROW_8) != 0)
 			{
-				move.promotesTo = QUEEN;
-				verifyAndAddMove(move);
-				move.promotesTo = ROOK;
-				verifyAndAddMove(move);
-				move.promotesTo = BISHOP;
-				verifyAndAddMove(move);
-				move.promotesTo = KNIGHT;
+				promote(move);
 			}
-			verifyAndAddMove(move);
+			else
+			{
+				verifyAndAddMove(move);
+			}
 		}
-		if ((move.startingSquare & ROW_2) != 0)
+		if (((1UL << move.startingSquare) & ROW_2) != 0)
 		{
 			move.newSquare += NORTH;
 			if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
@@ -140,33 +178,13 @@ void	Board::generateWhitePawnMoves()
 				verifyAndAddMove(move);
 			}
 		}
-		if ((move.startingSquare & A_FILE) == 0)
+		if (((1UL << move.startingSquare) & A_FILE) == 0)
 		{
-			move.newSquare = move.startingSquare + NORTHWEST;
-			if (move.newSquare == enPassentSquare)
-			{
-				move.capturedPiece = PAWN;
-				verifyAndAddMove(move);
-			}
-			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
-			{
-				move.capturedPiece = indexBoard[move.newSquare];
-				verifyAndAddMove(move);
-			}
+			pawnCapture(move, NORTHWEST);
 		}
-		if ((move.startingSquare & H_FILE) == 0)
+		if (((1UL << move.startingSquare) & H_FILE) == 0)
 		{
-			move.newSquare = move.startingSquare + NORTHEAST;
-			if (move.newSquare == enPassentSquare)
-			{
-				move.capturedPiece = PAWN;
-				verifyAndAddMove(move);
-			}
-			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
-			{
-				move.capturedPiece = indexBoard[move.newSquare];
-				verifyAndAddMove(move);
-			}
+			pawnCapture(move, NORTHEAST);
 		}
 	}
 }
@@ -176,57 +194,37 @@ void	Board::generateBlackPawnMoves()
 	Move	move(0);
 
 	getPieceIndexes(pieces[PAWN] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
 		move.startingSquare = pieceSQs[index];
 		move.newSquare = move.startingSquare + SOUTH;
 
 		if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
 		{
-			if ((move.newSquare & ROW_1) != 0)
+			if (((1UL << move.newSquare) & ROW_1) != 0)
 			{
-				move.promotesTo = QUEEN;
-				verifyAndAddMove(move);
-				move.promotesTo = ROOK;
-				verifyAndAddMove(move);
-				move.promotesTo = BISHOP;
-				verifyAndAddMove(move);
-				move.promotesTo = KNIGHT;
+				promote(move);
 			}
-			verifyAndAddMove(move);
+			else
+			{
+				verifyAndAddMove(move);
+			}
 		}
-		if ((move.startingSquare & ROW_7) != 0 && ((pieces[ALL] >> (move.newSquare + SOUTH)) & 1UL) == 0)
+		if (((1UL << move.startingSquare) & ROW_7) != 0)
 		{
 			move.newSquare += SOUTH;
-			verifyAndAddMove(move);
-		}
-		if ((move.startingSquare & A_FILE) == 0)
-		{
-			move.newSquare = move.startingSquare + SOUTHWEST;
-			if (move.newSquare == enPassentSquare)
+			if (((pieces[ALL] >> move.newSquare) & 1UL) == 0)
 			{
-				move.capturedPiece = PAWN;
-				verifyAndAddMove(move);
-			}
-			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
-			{
-				move.capturedPiece = indexBoard[move.newSquare];
 				verifyAndAddMove(move);
 			}
 		}
-		if ((pieceSQs[index] & H_FILE) == 0)
+		if (((1UL << move.startingSquare) & A_FILE) == 0)
 		{
-			move.newSquare = move.startingSquare + SOUTHEAST;
-			if (move.newSquare == enPassentSquare)
-			{
-				move.capturedPiece = PAWN;
-				verifyAndAddMove(move);
-			}
-			else if (((pieces[BLACK] >> move.newSquare) & 1UL) == 1)
-			{
-				move.capturedPiece = indexBoard[move.newSquare];
-				verifyAndAddMove(move);
-			}
+			pawnCapture(move, SOUTHWEST);
+		}
+		if (((1UL << move.startingSquare) & H_FILE) == 0)
+		{
+			pawnCapture(move, SOUTHEAST);
 		}
 	}
 }
@@ -238,7 +236,7 @@ void	Board::generateKnightMoves()
 	Move move(0);
 
 	getPieceIndexes(pieces[KNIGHT] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
 		move.startingSquare = pieceSQs[index];
 		for (int i = 0; i < 8; i++)
@@ -272,7 +270,7 @@ void	Board::generateKnightMoves()
 void	Board::generateQueenMoves()
 {
 	getPieceIndexes(pieces[QUEEN] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
 		searchDiagonalDirection(NORTHWEST, pieceSQs[index]);
 		searchDiagonalDirection(NORTHEAST, pieceSQs[index]);
@@ -288,7 +286,7 @@ void	Board::generateQueenMoves()
 void	Board::generateBishopMoves()
 {
 	getPieceIndexes(pieces[BISHOP] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
 		searchDiagonalDirection(NORTHWEST, pieceSQs[index]);
 		searchDiagonalDirection(NORTHEAST, pieceSQs[index]);
@@ -300,7 +298,7 @@ void	Board::generateBishopMoves()
 void	Board::generateRookMoves()
 {
 	getPieceIndexes(pieces[ROOK] & pieces[sideToMove]);
-	for (int index = 0; pieceSQs[index] != 0 && index < 10; index++)
+	for (int index = 0; pieceSQs[index] != -1 && index < 10; index++)
 	{
 		searchOrthogonalDirection(WEST, pieceSQs[index]);
 		searchOrthogonalDirection(EAST, pieceSQs[index]);
@@ -377,10 +375,12 @@ void	Board::generateCastlingMoves()
 
 void	Board::generateMoves()
 {
+	moveList.clear();
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	getPieceIndexes(pieces[KING] & pieces[sideToMove]);
 	bool kingIsChecked = inCheck(pieceSQs[0]);
 
+	position.set(pieces, indexBoard, sideToMove, enPassentSquare, castlingRights, halfMoveClock, fullMoveCount);
 	std::cout << "Generated moves (none): " << moveList.size() << std::endl;
 	generateRookMoves();
 	std::cout << "Generated moves (rooks): " << moveList.size() << std::endl;

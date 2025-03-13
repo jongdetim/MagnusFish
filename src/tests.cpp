@@ -25,7 +25,8 @@ void	testMoveCounts()
 	std::vector<MoveCountTest> tests =
 	{
         // {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 20},
-        {"8/8/8/8/8/8/P7/8 w KQkq - 0 1", 2},
+        {"r7/1P4p1/8/8/8/8/P6p/8 w KQkq - 0 1", 10},
+        {"8/1P4p1/8/8/8/8/P6p/6R1 b KQkq - 0 1", 10},
         // {"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 48},
         // {"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 14},
         // {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 6},

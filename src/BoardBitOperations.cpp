@@ -14,7 +14,7 @@ void	Board::getPieceIndexes(u64 bitboard)
 	}
 	for (; index < 10; index++)
 	{
-		pieceSQs[index] = 0;
+		pieceSQs[index] = -1;
 	}
 }
 

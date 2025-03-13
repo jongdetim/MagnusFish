@@ -15,6 +15,7 @@ SRCS		=	Board.cpp \
 				BoardGenerateMoves.cpp \
 				inputLoop.cpp \
 				Move.cpp \
+				Position.cpp \
 				search.cpp \
 
 MAIN		=	main.cpp

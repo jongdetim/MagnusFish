@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Move.hpp"
+#include "Position.hpp"
+#include <cstring>
 #include <map>
 #include <array>
 #include <iostream>
@@ -8,9 +10,9 @@
 #include <sstream>
 #include <string>
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint64_t u64;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u64 = uint64_t;
 
 enum castlingRights
 {
@@ -44,14 +46,6 @@ enum directions
 	SOUTHWEST = 7,
 	SOUTH = 8,
 	SOUTHEAST = 9
-};
-
-enum startingPawns
-{
-	whitePawnA2 = 6 * 8,
-	whitePawnH2 = 6 * 8 + 7,
-	blackPawnA7 = 8,
-	blackPawnH7 = 8 + 7
 };
 
 enum files
@@ -102,6 +96,8 @@ constexpr std::array<int, 8>	knightMoves =
 	2 * WEST + NORTH
 };
 
+struct Position;
+
 class Board
 {
 	public:
@@ -135,6 +131,9 @@ class Board
 	void	generateRookMoves();
 	void	generateWhitePawnMoves();
 
+	void	pawnCapture(Move& move, int direction);
+	void	promote(Move& move);
+
 	/*	Checking for checks	*/
 	
 	bool	inCheck(int kingIndex);
@@ -149,13 +148,13 @@ class Board
 
 	void	verifyAndAddMove(const Move& move);
 	void	makeMove(const Move& move);
-	void	undoMove(const Move& move);
+	void	undoMove();
 	void	castle(int castleDirection);
 	void	uncastle(int castleDirection);
 
 	/*	Miscellaneous states	*/
 
-	int		sideToMove;
+	bool	sideToMove;
 	bool	kingIsChecked;
 	int		enPassentSquare;
 	int		castlingRights;
@@ -168,6 +167,8 @@ class Board
 	std::vector<Move>	moveList;
 	std::array<int, 10> pieceSQs;
 	std::array<int, 64> indexBoard;
+
+	Position			position;
 };
 
 std::ostream&	operator<<(std::ostream& out, const Board& board);
